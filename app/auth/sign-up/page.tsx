@@ -4,25 +4,27 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/app/context/auth-context'
+import { authClient } from '@/lib/auth-client'
 
 export default function SignUpPage() {
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [confirm, setConfirm] = useState('')
-  const { login } = useAuth()
   const router = useRouter()
 
   const social = (provider: string) => {
-    login({ name: `${provider} User`, email: `user@${provider.toLowerCase()}.com` })
     router.push('/dashboard')
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (password !== confirm) return
-    login({ name, email })
-    router.push('/dashboard')
+    await authClient.signUp.email({
+      email, password, name
+    }, {
+      onSuccess: () => router.push('/dashboard')
+    })
   }
 
   return (

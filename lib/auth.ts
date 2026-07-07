@@ -7,7 +7,7 @@ dotenv.config();
 
 const client = new PrismaClient({
   adapter: new PrismaPg({
-    connectionString: process.env.DATABASE_URL,
+    connectionString: process.env.DIRECT_DB_URL,
   }),
 });
 
