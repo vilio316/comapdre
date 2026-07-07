@@ -2,41 +2,27 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
+import { useAuth } from '@/app/context/auth-context'
 
 export default function SignUpPage() {
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [confirm, setConfirm] = useState('')
-  const [submitted, setSubmitted] = useState(false)
+  const { login } = useAuth()
+  const router = useRouter()
+
+  const social = (provider: string) => {
+    login({ name: `${provider} User`, email: `user@${provider.toLowerCase()}.com` })
+    router.push('/dashboard')
+  }
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     if (password !== confirm) return
-    setSubmitted(true)
-  }
-
-  const social = (provider: string) => {
-    alert(`Sign up with ${provider} — integrate your auth provider here.`)
-  }
-
-  if (submitted) {
-    return (
-      <div className="mx-auto flex max-w-md flex-col items-center px-4 py-20 text-center">
-        <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-green-100">
-          <svg className="h-7 w-7 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="m4.5 12.75 6 6 9-13.5" />
-          </svg>
-        </div>
-        <h2 className="text-2xl font-bold text-deep">Check your email</h2>
-        <p className="mt-2 text-sm text-ink-muted">
-          We sent a confirmation link to <span className="font-medium text-deep">{email}</span>.
-        </p>
-        <Link href="/auth/sign-in" className="mt-6 text-sm font-medium text-blue underline hover:text-blue-light">
-          Go to sign in
-        </Link>
-      </div>
-    )
+    login({ name, email })
+    router.push('/dashboard')
   }
 
   return (

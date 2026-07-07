@@ -2,18 +2,24 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
+import { useAuth } from '@/app/context/auth-context'
 
 export default function SignInPage() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const { login } = useAuth()
+  const router = useRouter()
+
+  const social = (provider: string) => {
+    login({ name: `${provider} User`, email: `user@${provider.toLowerCase()}.com` })
+    router.push('/dashboard')
+  }
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    alert('Sign in — integrate your auth provider here.')
-  }
-
-  const social = (provider: string) => {
-    alert(`Sign in with ${provider} — integrate your auth provider here.`)
+    login({ name: email.split('@')[0], email })
+    router.push('/dashboard')
   }
 
   return (

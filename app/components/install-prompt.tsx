@@ -19,8 +19,13 @@ function isDev(): boolean {
   return window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
 }
 
+interface BeforeInstallPromptEvent extends Event {
+  prompt: () => Promise<void>
+  userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>
+}
+
 export default function InstallPrompt() {
-  const [deferredPrompt, setDeferredPrompt] = useState<any>(null)
+  const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null)
   const [visible, setVisible] = useState(false)
 
   useEffect(() => {
@@ -34,7 +39,7 @@ export default function InstallPrompt() {
     if (!isDev()) {
       const handler = (e: Event) => {
         e.preventDefault()
-        setDeferredPrompt(e)
+        setDeferredPrompt(e as BeforeInstallPromptEvent)
         setVisible(true)
       }
       window.addEventListener('beforeinstallprompt', handler)
