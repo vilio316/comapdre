@@ -1,6 +1,5 @@
 "use client";
 
-import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -22,7 +21,7 @@ export default function DashboardLayout({
   const pathname = usePathname();
 
   return (
-    <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-8 px-4 py-8 sm:flex-row sm:px-6 sm:py-10">
+    <div className="mx-auto flex w-full flex-1 flex-col gap-8 px-4 py-8 sm:flex-row sm:px-6 sm:py-10">
       <aside className="shrink-0 sm:w-48">
         <nav className="flex gap-1 overflow-x-auto sm:flex-col sm:gap-0.5">
           {nav.map(({ href, label }) => {

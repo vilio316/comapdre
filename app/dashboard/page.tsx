@@ -1,5 +1,6 @@
 "use client";
 
+import { authClient } from "@/lib/auth-client";
 import Link from "next/link";
 
 const features = [
@@ -91,17 +92,26 @@ const features = [
 ];
 
 export default function DashboardPage() {
+  const { useSession } = authClient;
+  const { data } = useSession();
   return (
     <div>
       <div className="mb-8 flex items-center gap-4">
-        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-gold/20 text-sm font-bold text-gold">
-          BA
+        <div className="flex h-12 w-12 md:h-16 md:w-16 items-center justify-center rounded-full bg-gold/20 text-sm font-bold text-gold">
+          {data?.user.image ? (
+            <img
+              src={data.user.image}
+              className="w-full h-full object-cover rounded-full border border-gold"
+            />
+          ) : (
+            data?.user.name.charAt(0)
+          )}
         </div>
         <div>
           <h1 className="text-xl font-bold text-deep sm:text-2xl">
-            Welcome, Blue
+            Welcome, {data?.user.name}
           </h1>
-          <p className="text-sm text-ink-muted">Red</p>
+          <p className="text-sm text-ink-muted">Your Dashboard</p>
         </div>
       </div>
 
