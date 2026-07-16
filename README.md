@@ -1,36 +1,46 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Compadre
 
-## Getting Started
+Your all-in-one study companion. Upload your class materials, generate practice questions, scan documents for text, and prep for exams — all in one place.
 
-First, run the development server:
+---
+
+## What Compadre does
+
+**Compadre** is a web app built for students who want to keep their study materials organised and turn them into active learning tools. Think of it as a digital study binder that does more than just store files.
+
+### Core features
+
+**Document hub** — Upload your PDFs and DOCX files, tag them by subject, and search across everything. Every file is stored securely in the cloud and viewable right in the browser.
+
+**MCQ generator** — Turn your notes into multiple-choice practice questions. Test yourself on the material you've actually been studying.
+
+**Exam prep** — Create flashcards and summaries from your documents to review before test day.
+
+**OCR (optical character recognition)** — Snap a photo of a whiteboard, handout, or textbook page and extract the text so you can search and study it digitally.
+
+---
+
+## How it works
+
+1. Sign in with your email, Google account, or Apple ID.
+2. Upload your files — lecture notes, readings, past exams.
+3. Use the tools to quiz yourself, generate summaries, or pull text from images.
+
+Everything syncs to the cloud, so your materials are available wherever you log in.
+
+---
+
+## Tech notes
+
+Built with Next.js and styled with Tailwind CSS. Files are stored on Cloudflare R2. Authentication is handled by Better Auth. The app works as a progressive web app — you can install it on your phone or desktop for quick access.
+
+---
+
+## Getting started
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
-
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
-
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Open [http://localhost:3000](http://localhost:3000) in your browser.

@@ -12,7 +12,7 @@ export async function GET(
     const url = await getObjectSignedUrl(decodedKey);
 
     const ext = decodedKey.split(".").pop()?.toLowerCase() ?? "";
-    const type = ext === "pdf" ? "pdf" : ext === "docx" ? "docx" : "other";
+    const type = ext === "pdf" ? "pdf" : ext === "docx" ? "docx" : ext === "jpg" || ext === "jpeg" ? "jpeg" : ext === "png" ? "png" : "other";
 
     return NextResponse.json({ url, name: decodedKey, type });
   } catch (error) {

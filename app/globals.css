@@ -15,13 +15,50 @@
   --font-mono: var(--font-geist-mono);
 }
 
+.dark {
+  --color-deep: #E2E8F0;
+  --color-deep-light: #CBD5E1;
+  --color-blue: #60A5FA;
+  --color-blue-light: #93C5FD;
+  --color-gold: #D4A843;
+  --color-gold-light: #E5C76B;
+  --color-surface: #1E293B;
+  --color-muted: #334155;
+  --color-ink: #F1F5F9;
+  --color-ink-muted: #94A3B8;
+  --color-gray-50: #1E293B;
+  --color-gray-100: #334155;
+  --color-gray-200: #475569;
+  --color-gray-300: #64748B;
+  --color-gray-400: #94A3B8;
+  --color-gray-500: #CBD5E1;
+  --color-gray-600: #E2E8F0;
+  --color-gray-700: #F1F5F9;
+  --color-gray-800: #F8FAFC;
+  --color-gray-900: #F8FAFC;
+  --color-red-50: #7F1D1D;
+  --color-red-200: #991B1B;
+  --color-red-300: #B91C1C;
+  --color-red-600: #FCA5A5;
+  --color-green-50: #064E3B;
+  --color-green-100: #065F46;
+  --color-green-600: #6EE7B7;
+  --color-green-800: #A7F3D0;
+}
+
 body {
   background: var(--color-muted);
   color: var(--color-ink);
   font-family: var(--font-sans);
+  transition: background-color 0.2s, color 0.2s;
 }
 
 ::selection {
   background: #D4A843;
   color: #1B2A4A;
+}
+
+.dark ::selection {
+  background: #D4A843;
+  color: #1A1A2E;
 }

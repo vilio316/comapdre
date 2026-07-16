@@ -7,10 +7,12 @@ function formatBytes(bytes: number): string {
 }
 
 function extType(name: string): string {
-  const ext = name.split(".").pop()?.toUpperCase();
-  if (ext === "PDF") return "PDF";
-  if (ext === "DOCX") return "DOCX";
-  return ext ?? "FILE";
+  const ext = name.split(".").pop()?.toLowerCase();
+  if (ext === "pdf") return "PDF";
+  if (ext === "docx") return "DOCX";
+  if (ext === "jpg" || ext === "jpeg") return "JPEG";
+  if (ext === "png") return "PNG";
+  return (ext ?? "FILE").toUpperCase();
 }
 
 export async function GET() {

@@ -1,6 +1,8 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import Script from "next/script";
 import Navbar from "@/app/components/navbar";
+import { ThemeProvider } from "@/app/components/theme-provider";
 import InstallPrompt from "@/app/components/install-prompt";
 import "./globals.css";
 
@@ -42,11 +44,25 @@ export default function RootLayout({
     <html
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      suppressHydrationWarning
     >
+      <head>
+        <Script id="theme-init" strategy="beforeInteractive">
+          {`
+            try {
+              var t = localStorage.getItem("theme");
+              if (!t) t = matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+              if (t === "dark") document.documentElement.classList.add("dark");
+            } catch(e) {}
+          `}
+        </Script>
+      </head>
       <body className="flex min-h-full flex-col">
-        <Navbar />
-        <main className="flex-1 pb-16 sm:pb-0">{children}</main>
-        <InstallPrompt />
+        <ThemeProvider>
+          <Navbar />
+          <main className="flex-1 pb-16 sm:pb-0">{children}</main>
+          <InstallPrompt />
+        </ThemeProvider>
       </body>
     </html>
   );
