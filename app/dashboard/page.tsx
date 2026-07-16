@@ -211,7 +211,12 @@ export default function DashboardPage() {
                 {doc.type}
               </div>
               <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-medium text-deep">{doc.name}</p>
+                <Link
+                  href={`/dashboard/documents/${encodeURIComponent(doc.id)}`}
+                  className="truncate text-sm font-medium text-deep hover:text-gold transition-colors"
+                >
+                  {doc.name}
+                </Link>
                 <p className="text-[11px] text-ink-muted">
                   {doc.size} &middot; {doc.uploaded}
                 </p>
@@ -226,9 +231,12 @@ export default function DashboardPage() {
                   </span>
                 ))}
               </div>
-              <button className="rounded-md border border-gray-200 px-2 py-1 text-[11px] text-ink-muted transition-colors hover:bg-gray-50 sm:px-2.5 sm:text-xs">
+              <Link
+                href={`/dashboard/documents/${encodeURIComponent(doc.id)}`}
+                className="rounded-md border border-gray-200 px-2 py-1 text-[11px] text-ink-muted transition-colors hover:bg-gray-50 sm:px-2.5 sm:text-xs"
+              >
                 Details
-              </button>
+              </Link>
             </div>
           ))}
         </div>

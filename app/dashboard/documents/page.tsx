@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import Link from 'next/link'
 import UploadPipeline from '@/app/components/upload-pipeline'
 import type { UploadedFile } from '@/app/components/upload-pipeline'
 
@@ -114,7 +115,12 @@ export default function DocumentsPage() {
                 {doc.type}
               </div>
               <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-medium text-deep">{doc.name}</p>
+                <Link
+                  href={`/dashboard/documents/${encodeURIComponent(doc.id)}`}
+                  className="truncate text-sm font-medium text-deep hover:text-gold transition-colors"
+                >
+                  {doc.name}
+                </Link>
                 <p className="text-xs text-ink-muted">{doc.size} &middot; {doc.uploaded}</p>
               </div>
               <div className="flex flex-wrap gap-1">
@@ -124,9 +130,12 @@ export default function DocumentsPage() {
                   </span>
                 ))}
               </div>
-              <button className="rounded-lg border border-gray-200 px-2.5 py-1.5 text-xs text-ink-muted hover:bg-gray-50 sm:px-3">
+              <Link
+                href={`/dashboard/documents/${encodeURIComponent(doc.id)}`}
+                className="rounded-lg border border-gray-200 px-2.5 py-1.5 text-xs text-ink-muted hover:bg-gray-50 sm:px-3"
+              >
                 Details
-              </button>
+              </Link>
             </div>
           ))}
         </div>

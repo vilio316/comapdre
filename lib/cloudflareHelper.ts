@@ -1,4 +1,5 @@
-import { ListObjectsV2Command, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
+import { GetObjectCommand, ListObjectsV2Command, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
+import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
 let s3: S3Client | null = null;
 
@@ -57,4 +58,19 @@ export async function listObjectsInBucket() {
     size: obj.Size ?? 0,
     uploaded: obj.LastModified ?? new Date(),
   }));
+}
+
+export async function getObjectSignedUrl(key: string) {
+  const client = getS3Client();
+
+  const url = await getSignedUrl(
+    client,
+    new GetObjectCommand({
+      Bucket: "compadre-bucket-one",
+      Key: key,
+    }),
+    { expiresIn: 3600 },
+  );
+
+  return url;
 }
