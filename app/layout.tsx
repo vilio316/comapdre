@@ -45,9 +45,11 @@ export default function RootLayout({
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="flex min-h-full flex-col">
-        <Navbar />
-        <main className="flex-1 pb-16 sm:pb-0">{children}</main>
-        <InstallPrompt />
+          <AuthProvider>
+            <Navbar />
+            <main className="flex-1 pb-16 sm:pb-0">{children}</main>
+            <InstallPrompt />
+          </AuthProvider>
       </body>
     </html>
   );

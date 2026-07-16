@@ -1,6 +1,8 @@
 'use client'
 
 import { useState } from 'react'
+import UploadPipeline from '@/app/components/upload-pipeline'
+import type { UploadedFile } from '@/app/components/upload-pipeline'
 
 interface Doc {
   id: string
@@ -11,14 +13,15 @@ interface Doc {
   tags: string[]
 }
 
-const initialDocs: Doc[] = [
+const sampleDocs: Doc[] = [
   { id: '1', name: 'Biology_Ch3_Notes.pdf', type: 'PDF', size: '2.4 MB', uploaded: '2026-07-05', tags: ['biology', 'notes'] },
   { id: '2', name: 'History_Essay.docx', type: 'DOCX', size: '1.1 MB', uploaded: '2026-07-04', tags: ['history', 'essay'] },
   { id: '3', name: 'Math_Formulas.pdf', type: 'PDF', size: '890 KB', uploaded: '2026-07-03', tags: ['math', 'reference'] },
 ]
 
 export default function DocumentsPage() {
-  const [docs] = useState<Doc[]>(initialDocs)
+  const [docs, setDocs] = useState<Doc[]>(sampleDocs)
+  const [showUpload, setShowUpload] = useState(false)
   const [search, setSearch] = useState('')
   const [tagFilter, setTagFilter] = useState('')
 
@@ -30,21 +33,48 @@ export default function DocumentsPage() {
 
   const allTags = [...new Set(docs.flatMap((d) => d.tags))]
 
+  const handleUpload = (uf: UploadedFile, tags: string[]) => {
+    const doc: Doc = {
+      id: uf.id,
+      name: uf.name,
+      type: uf.type,
+      size: uf.size,
+      uploaded: new Date().toISOString().slice(0, 10),
+      tags,
+    }
+    setDocs((prev) => [doc, ...prev])
+    setShowUpload(false)
+  }
+
   return (
-    <div className="mx-auto max-w-4xl px-4 py-8 sm:py-12 sm:px-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
+    <div>
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold text-deep sm:text-3xl">Documents</h1>
           <p className="mt-0.5 text-sm text-ink-muted sm:mt-1 sm:text-base">
             Manage and organize your class materials.
           </p>
         </div>
-        <button className="w-full rounded-lg bg-deep px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-deep-light sm:w-auto">
-          + Upload
-        </button>
+        {!showUpload && (
+          <button
+            onClick={() => setShowUpload(true)}
+            className="w-full rounded-lg bg-deep px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-deep-light sm:w-auto"
+          >
+            + Upload
+          </button>
+        )}
       </div>
 
-      <div className="mt-5 flex flex-col gap-3 sm:mt-6 sm:flex-row">
+      {showUpload && (
+        <div className="mb-6">
+          <UploadPipeline
+            onComplete={handleUpload}
+            onCancel={() => setShowUpload(false)}
+          />
+        </div>
+      )}
+
+      <div className="mb-5 flex flex-col gap-3 sm:mb-6 sm:flex-row">
         <input
           value={search}
           onChange={(e) => setSearch(e.target.value)}
@@ -68,7 +98,7 @@ export default function DocumentsPage() {
           <p className="text-ink-muted">No documents found.</p>
         </div>
       ) : (
-        <div className="mt-5 space-y-3 sm:mt-6">
+        <div className="space-y-3">
           {filtered.map((doc) => (
             <div key={doc.id} className="flex items-center gap-3 rounded-xl border border-gray-200 bg-surface p-3 transition-colors hover:border-gold/40 sm:gap-4 sm:p-4">
               <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-deep/5 text-xs font-bold text-deep sm:h-10 sm:w-10">

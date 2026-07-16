@@ -3,8 +3,8 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useAuth } from "@/app/context/auth-context";
 import { authClient } from "@/lib/auth-client";
+import { redirect } from "next/navigation";
 
 export default function SignInPage() {
   const [email, setEmail] = useState("");
@@ -12,9 +12,14 @@ export default function SignInPage() {
   const router = useRouter();
 
   const social = async (provider: string) => {
-    await authClient.signIn.social({
-      provider: "google",
-    });
+    await authClient.signIn.social(
+      {
+        provider: "google",
+      },
+      {
+        onSuccess: () => redirect("/dashboard"),
+      },
+    );
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
