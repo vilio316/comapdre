@@ -44,7 +44,7 @@ export default function DashboardLayout({
                 href={href}
                 className={`shrink-0 rounded-lg px-3 py-2 text-sm font-medium transition-colors sm:shrink sm:rounded-md ${
                   isActive
-                    ? "bg-deep text-white"
+                    ? "bg-gold text-deep"
                     : "text-ink-muted hover:bg-deep/5 hover:text-deep"
                 }`}
               >

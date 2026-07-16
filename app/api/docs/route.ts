@@ -183,6 +183,49 @@ const spec = {
           },
         },
       },
+      delete: {
+        summary: "Delete a document from storage",
+        description:
+          "Permanently deletes a file from the R2 bucket by its file key.",
+        operationId: "deleteDocument",
+        parameters: [
+          {
+            name: "key",
+            in: "path",
+            required: true,
+            schema: { type: "string" },
+            description: "URL-encoded file key to delete.",
+          },
+        ],
+        responses: {
+          "200": {
+            description: "Document deleted successfully.",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    success: { type: "boolean", enum: [true] },
+                  },
+                },
+              },
+            },
+          },
+          "500": {
+            description: "Failed to delete document.",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    error: { type: "string" },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
     },
     "/api/auth/sign-in/email": {
       post: {

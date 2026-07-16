@@ -1,4 +1,4 @@
-import { GetObjectCommand, ListObjectsV2Command, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
+import { DeleteObjectCommand, GetObjectCommand, ListObjectsV2Command, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
 let s3: S3Client | null = null;
@@ -21,6 +21,19 @@ function getS3Client(): S3Client {
     });
   }
   return s3;
+}
+
+export async function deleteObjectFromR2(key: string) {
+  const client = getS3Client();
+
+  await client.send(
+    new DeleteObjectCommand({
+      Bucket: "compadre-bucket-one",
+      Key: key,
+    }),
+  );
+
+  return { key };
 }
 
 export async function uploadToR2(
