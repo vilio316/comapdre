@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { authClient } from "@/lib/auth-client";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -15,12 +15,6 @@ interface Doc {
   uploaded: string;
   tags: string[];
 }
-
-const sampleDocs: Doc[] = [
-  { id: "1", name: "Biology_Ch3_Notes.pdf", type: "PDF", size: "2.4 MB", uploaded: "2026-07-05", tags: ["biology", "notes"] },
-  { id: "2", name: "History_Essay.docx", type: "DOCX", size: "1.1 MB", uploaded: "2026-07-04", tags: ["history", "essay"] },
-  { id: "3", name: "Math_Formulas.pdf", type: "PDF", size: "890 KB", uploaded: "2026-07-03", tags: ["math", "reference"] },
-];
 
 const quickActions = [
   {
@@ -61,10 +55,21 @@ export default function DashboardPage() {
   const { data } = useSession();
   const router = useRouter();
 
-  const [docs, setDocs] = useState<Doc[]>(sampleDocs);
+  const [docs, setDocs] = useState<Doc[]>([]);
+  const [loading, setLoading] = useState(true);
   const [showUpload, setShowUpload] = useState(false);
   const [search, setSearch] = useState("");
   const [tagFilter, setTagFilter] = useState("");
+
+  useEffect(() => {
+    fetch("/api/documents")
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.docs) setDocs(data.docs);
+      })
+      .catch(console.error)
+      .finally(() => setLoading(false));
+  }, []);
 
   const filtered = docs.filter((d) => {
     const matchSearch = d.name.toLowerCase().includes(search.toLowerCase());
@@ -187,7 +192,11 @@ export default function DashboardPage() {
         </select>
       </div>
 
-      {filtered.length === 0 ? (
+      {loading ? (
+        <div className="mt-10 flex justify-center">
+          <div className="h-6 w-6 animate-spin rounded-full border-2 border-gray-300 border-t-deep" />
+        </div>
+      ) : filtered.length === 0 ? (
         <div className="mt-10 text-center">
           <p className="text-sm text-ink-muted">No documents found.</p>
         </div>
