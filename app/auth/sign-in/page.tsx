@@ -12,14 +12,10 @@ export default function SignInPage() {
   const router = useRouter();
 
   const social = async (provider: string) => {
-    await authClient.signIn.social(
-      {
-        provider: "google",
-      },
-      {
-        onSuccess: () => redirect("/dashboard"),
-      },
-    );
+    await authClient.signIn.social({
+      provider: provider,
+      callbackURL: `${process.env.NEXT_PUBLIC_APP_BASE_URL}/dashboard`,
+    });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {

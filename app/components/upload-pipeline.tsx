@@ -436,7 +436,7 @@ export default function UploadPipeline({
           <div className="mt-4 flex gap-2">
             <button
               onClick={startUpload}
-              className="flex-1 rounded-lg bg-deep py-2.5 text-sm font-medium text-white transition-colors hover:bg-deep-light"
+              className="flex-1 rounded-lg bg-gold py-2.5 text-sm font-medium text-deep transition-colors hover:bg-gold-light"
             >
               Upload
             </button>
@@ -453,7 +453,7 @@ export default function UploadPipeline({
           <div className="mt-4 flex gap-2">
             <button
               onClick={finish}
-              className="flex-1 rounded-lg bg-deep py-2.5 text-sm font-medium text-white transition-colors hover:bg-deep-light"
+              className="flex-1 rounded-lg bg-gold py-2.5 text-sm font-medium text-deep transition-colors hover:bg-gold-light"
             >
               Done
             </button>

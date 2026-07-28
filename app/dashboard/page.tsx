@@ -180,7 +180,7 @@ export default function DashboardPage() {
         {!showUpload && (
           <button
             onClick={() => setShowUpload(true)}
-            className="rounded-lg bg-deep px-4 py-2 text-xs font-medium text-white transition-colors hover:bg-deep-light"
+            className="rounded-lg bg-gold px-4 py-2 text-xs font-medium text-deep transition-colors hover:bg-gold-light"
           >
             + Upload
           </button>
@@ -198,7 +198,7 @@ export default function DashboardPage() {
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Search documents..."
-          className="flex-1 rounded-lg border border-gray-300 bg-surface px-4 py-2 text-sm outline-none focus:border-blue focus:ring-2 focus:ring-blue/20"
+          className="flex-1 rounded-lg border border-gray-300 bg-surface px-4 py-2 text-sm text-ink outline-none focus:border-blue focus:ring-2 focus:ring-blue/20"
         />
         <select
           value={tagFilter}

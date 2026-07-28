@@ -13,14 +13,10 @@ export default function SignUpPage() {
   const router = useRouter();
 
   const social = async (provider: string) => {
-    await authClient.signIn.social(
-      {
-        provider: provider,
-      },
-      {
-        onSuccess: () => router.push("/dashboard"),
-      },
-    );
+    await authClient.signIn.social({
+      provider: provider,
+      callbackURL: `${process.env.NEXT_PUBLIC_APP_BASE_URL}/dashboard`,
+    });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {

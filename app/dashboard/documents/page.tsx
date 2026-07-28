@@ -84,7 +84,7 @@ export default function DocumentsPage() {
         {!showUpload && (
           <button
             onClick={() => setShowUpload(true)}
-            className="w-full rounded-lg bg-deep px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-deep-light sm:w-auto"
+            className="w-full rounded-lg bg-gold px-5 py-2.5 text-sm font-medium text-deep transition-colors hover:bg-gold-light sm:w-auto"
           >
             + Upload
           </button>
@@ -105,7 +105,7 @@ export default function DocumentsPage() {
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Search documents..."
-          className="rounded-lg border border-gray-300 bg-surface px-4 py-2.5 text-sm outline-none focus:border-blue focus:ring-2 focus:ring-blue/20 sm:min-w-[220px] sm:flex-1"
+          className="rounded-lg border border-gray-300 bg-surface px-4 py-2.5 text-sm text-ink outline-none focus:border-blue focus:ring-2 focus:ring-blue/20 sm:min-w-[220px] sm:flex-1"
         />
         <select
           value={tagFilter}

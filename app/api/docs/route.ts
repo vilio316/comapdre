@@ -9,7 +9,7 @@ const spec = {
   },
   servers: [
     {
-      url: "/api",
+      url: "/",
       description: "Relative API base path",
     },
   ],
@@ -306,7 +306,11 @@ const spec = {
                         id: { type: "string" },
                         name: { type: "string" },
                         email: { type: "string", format: "email" },
-                        image: { type: "string", format: "uri", nullable: true },
+                        image: {
+                          type: "string",
+                          format: "uri",
+                          nullable: true,
+                        },
                       },
                     },
                     session: { type: "object", nullable: true },
@@ -353,14 +357,20 @@ const spec = {
       Document: {
         type: "object",
         properties: {
-          id: { type: "string", description: "File key (filename) in the bucket." },
+          id: {
+            type: "string",
+            description: "File key (filename) in the bucket.",
+          },
           name: { type: "string", description: "File name." },
           type: {
             type: "string",
             enum: ["PDF", "DOCX", "FILE"],
             description: "Detected file type from extension.",
           },
-          size: { type: "string", description: "Human-readable file size (e.g. 2.4 MB)." },
+          size: {
+            type: "string",
+            description: "Human-readable file size (e.g. 2.4 MB).",
+          },
           uploaded: {
             type: "string",
             format: "date",

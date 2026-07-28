@@ -23,6 +23,7 @@ export default function DocumentViewerPage() {
       .then((res) => {
         if (res.error) throw new Error(res.error);
         setData(res);
+        console.log(res);
       })
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false));
@@ -103,7 +104,6 @@ export default function DocumentViewerPage() {
           Download
         </a>
       </div>
-
       {data.type === "pdf" ? (
         <div className="flex-1 overflow-hidden rounded-xl border border-gray-200 bg-surface shadow-sm">
           <iframe
