@@ -83,6 +83,18 @@ export default function DocumentViewerPage() {
             {data.name}
           </h1>
         </div>
+        {data.type === "jpeg" ||
+          (data.type === "png" && (
+            <button
+              onClick={async () =>
+                await fetch(`/api/documents/${id}/ocr`, {
+                  method: "POST",
+                })
+              }
+            >
+              OCR SCAN
+            </button>
+          ))}
         <a
           href={data.url}
           download={data.name}

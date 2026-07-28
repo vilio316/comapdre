@@ -20,3 +20,17 @@ export async function processLocalImage(file: File) {
 
   return request.output_text;
 }
+
+export async function processOnlineImage(url: string) {
+  const processOnlineInteraction = await ai.interactions.create({
+    model: "gemini-3.6-flash",
+    input: [
+      { type: "text", text: "Extract all text from this image." },
+      {
+        type: "image",
+        uri: url,
+      },
+    ],
+  });
+  return processOnlineInteraction.output_text;
+}
