@@ -32,7 +32,7 @@ export default function DashboardLayout({
 
   if (isPending) {
     return (
-      <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-8 px-4 py-8 sm:flex-row sm:px-6 sm:py-10">
+      <div className="mx-auto flex w-full flex-1 flex-col gap-8 px-4 py-8 sm:flex-row sm:px-6 sm:py-10">
         <div className="flex flex-1 items-center justify-center">
           <div className="h-8 w-8 animate-spin rounded-full border-4 border-gray-200 border-t-deep" />
         </div>
@@ -45,8 +45,8 @@ export default function DashboardLayout({
   }
 
   return (
-    <div className="mx-auto grid grid-cols-8 w-full flex-1 flex-col gap-8 px-4 py-8 sm:flex-row sm:px-6 sm:py-10">
-      <aside className="shrink-0 col-span-1">
+    <div className="mx-auto grid md:grid-cols-8 w-full flex-1 flex-col gap-8 px-4 py-8 sm:flex-row sm:px-6 sm:py-10">
+      <aside className="shrink-0 sm:col-span-3 md:cols-span-1 hidden">
         <nav className="gap-1 overflow-x-auto grid sm:gap-0.5">
           {nav.map(({ href, label }) => {
             const isActive = pathname === href;
@@ -66,7 +66,7 @@ export default function DashboardLayout({
           })}
         </nav>
       </aside>
-      <div className="min-w-0 col-span-7">{children}</div>
+      <div className="min-w-0 md:col-span-8 sm:col-span-5">{children}</div>
     </div>
   );
 }

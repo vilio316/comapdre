@@ -2,7 +2,7 @@ import { NextResponse, NextRequest } from "next/server";
 import { getObjectSignedUrl } from "@/lib/cloudflareHelper";
 import { processOnlineImage } from "@/app/api/ocr/ocrFunctions";
 
-export async function POST(
+export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ key: string }> },
 ) {

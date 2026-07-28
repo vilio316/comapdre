@@ -45,7 +45,7 @@ export default function OCRPage() {
         documents.
       </p>
 
-      <div className="grid-cols-2 gap-x-4 gap-y-2 grid">
+      <div className="md:grid-cols-2 gap-x-4 gap-y-2 grid">
         <div className={`mt-4 sm:mt-6 ${!text && "col-span-2"}`}>
           <div
             onDragOver={(e) => {
