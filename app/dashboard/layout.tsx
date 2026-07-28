@@ -45,8 +45,8 @@ export default function DashboardLayout({
   }
 
   return (
-    <div className="mx-auto grid grid-cols-8 w-full max-w-6xl flex-1 flex-col gap-8 px-4 py-8 sm:flex-row sm:px-6 sm:py-10">
-      <aside className="shrink-0 sm:w-48 col-span-1">
+    <div className="mx-auto grid grid-cols-8 w-full flex-1 flex-col gap-8 px-4 py-8 sm:flex-row sm:px-6 sm:py-10">
+      <aside className="shrink-0 col-span-1">
         <nav className="gap-1 overflow-x-auto grid sm:gap-0.5">
           {nav.map(({ href, label }) => {
             const isActive = pathname === href;
