@@ -1,15 +1,45 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useCallback } from "react";
 import Image from "next/image";
+import { useJobPolling } from "@/app/hooks/use-job-polling";
 
 export default function OCRPage() {
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [text, setText] = useState("");
   const [loading, setLoading] = useState(false);
+  const [jobId, setJobId] = useState<string | null>(null);
   const [dragOver, setDragOver] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  useJobPolling(jobId, {
+    onComplete: (result) => {
+      setJobId(null);
+      if (result.status === "done" && result.result) {
+        setText(result.result);
+      }
+    },
+  });
+
+  const submitOcr = useCallback(async () => {
+    if (!file) return;
+    setText("");
+    setLoading(true);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      const res = await fetch("/api/ocr", { method: "POST", body: formData });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Scan failed");
+      setJobId(data.jobId);
+    } catch {
+      // polling hook will show error toast for job failures,
+      // but submission failure needs an alert
+    } finally {
+      setLoading(false);
+    }
+  }, [file]);
 
   const handleFile = (f: File) => {
     if (!f.type.startsWith("image/")) return;
@@ -19,23 +49,12 @@ export default function OCRPage() {
     reader.readAsDataURL(f);
   };
 
-  const scan = async () => {
-    if (!file) return;
-    const formData = new FormData();
-    formData.append("file", file);
-    setLoading(true);
+  const reset = useCallback(() => {
+    setFile(null);
+    setPreview(null);
     setText("");
-    try {
-      const res = await fetch("/api/ocr", { method: "POST", body: formData });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Scan failed");
-      setText(data.result);
-    } catch (err) {
-      alert(err instanceof Error ? err.message : "Scan failed");
-    } finally {
-      setLoading(false);
-    }
-  };
+    setJobId(null);
+  }, []);
 
   return (
     <div className="mx-auto w-full px-3 py-6 sm:py-8 sm:px-4">
@@ -112,18 +131,14 @@ export default function OCRPage() {
           {file && (
             <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:gap-3">
               <button
-                onClick={scan}
+                onClick={submitOcr}
                 disabled={loading}
-                className="w-full rounded-lg bg-deep px-6 py-2.5 text-sm font-medium text-white transition-colors hover:bg-deep-light disabled:opacity-50 sm:w-auto"
+                className="w-full rounded-lg bg-gold px-6 py-2.5 text-sm font-medium text-deep transition-colors hover:bg-gold-light disabled:opacity-50 sm:w-auto"
               >
-                {loading ? "Scanning..." : "Scan for Text"}
+                {loading ? "Submitting..." : "Scan for Text"}
               </button>
               <button
-                onClick={() => {
-                  setFile(null);
-                  setPreview(null);
-                  setText("");
-                }}
+                onClick={reset}
                 className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm text-ink-muted hover:bg-gray-50 sm:w-auto"
               >
                 Remove

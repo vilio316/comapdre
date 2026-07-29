@@ -1,8 +1,8 @@
 import { NextResponse, NextRequest } from "next/server";
 import { getObjectSignedUrl } from "@/lib/cloudflareHelper";
-import { processOnlineImage } from "@/app/api/ocr/ocrFunctions";
+import { createOnlineOcrJob } from "@/app/lib/job-manager";
 
-export async function GET(
+export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ key: string }> },
 ) {
@@ -12,30 +12,15 @@ export async function GET(
 
     const url = await getObjectSignedUrl(decodedKey);
 
-    const ext = decodedKey.split(".").pop()?.toLowerCase() ?? "";
-    const type =
-      ext === "pdf"
-        ? "pdf"
-        : ext === "docx"
-          ? "docx"
-          : ext === "jpg" || ext === "jpeg"
-            ? "jpeg"
-            : ext === "png"
-              ? "png"
-              : "other";
+    const { id } = await createOnlineOcrJob(url);
 
-    const handledFileContent = await processOnlineImage(url);
-    return NextResponse.json({
-      output_text: handledFileContent,
-      success: true,
-    });
+    return NextResponse.json({ jobId: id });
   } catch (error) {
-    console.error("Failed to get document URL:", error);
+    console.error("Failed to queue document OCR:", error);
     return NextResponse.json(
       {
         error:
-          error instanceof Error ? error.message : "Failed to get document",
-
+          error instanceof Error ? error.message : "Failed to queue document OCR",
         success: false,
       },
       { status: 500 },

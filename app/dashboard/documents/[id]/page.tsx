@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
+import { useJobPolling } from "@/app/hooks/use-job-polling";
 
 export default function DocumentViewerPage() {
   const params = useParams();
@@ -18,6 +19,16 @@ export default function DocumentViewerPage() {
   const [loading, setLoading] = useState(true);
   const [ocrText, setOcrText] = useState<string | null>(null);
   const [ocrLoading, setOcrLoading] = useState(false);
+  const [jobId, setJobId] = useState<string | null>(null);
+
+  useJobPolling(jobId, {
+    onComplete: (result) => {
+      setJobId(null);
+      if (result.status === "done" && result.result) {
+        setOcrText(result.result);
+      }
+    },
+  });
 
   useEffect(() => {
     if (!id) return;
@@ -31,21 +42,23 @@ export default function DocumentViewerPage() {
       .finally(() => setLoading(false));
   }, [id]);
 
-  const scanOcr = async () => {
+  const scanOcr = useCallback(async () => {
     if (!data || (data.type !== "jpeg" && data.type !== "png")) return;
-    setOcrLoading(true);
     setOcrText(null);
+    setOcrLoading(true);
     try {
-      const res = await fetch(`/api/documents/${id}/ocr`);
+      const res = await fetch(`/api/documents/${encodeURIComponent(id)}/ocr`, {
+        method: "POST",
+      });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || "OCR failed");
-      setOcrText(json.output_text);
-    } catch (err) {
-      alert(err instanceof Error ? err.message : "OCR failed");
+      setJobId(json.jobId);
+    } catch {
+      // error handled by polling hook
     } finally {
       setOcrLoading(false);
     }
-  };
+  }, [data, id]);
 
   if (loading) {
     return (
@@ -75,6 +88,7 @@ export default function DocumentViewerPage() {
   }
 
   const isImage = data.type === "jpeg" || data.type === "png";
+  const hasPendingJob = jobId !== null;
 
   return (
     <div className="flex flex-col pb-8">
@@ -107,7 +121,7 @@ export default function DocumentViewerPage() {
           {isImage && (
             <button
               onClick={scanOcr}
-              disabled={ocrLoading}
+              disabled={ocrLoading || hasPendingJob}
               className="flex items-center gap-1.5 rounded-lg bg-gold px-3.5 py-2 text-xs font-medium text-deep transition-colors hover:bg-gold-light disabled:opacity-50"
             >
               <svg
@@ -128,7 +142,7 @@ export default function DocumentViewerPage() {
                   d="M16.5 12.75a4.5 4.5 0 1 1-9 0 4.5 4.5 0 0 1 9 0Z"
                 />
               </svg>
-              {ocrLoading ? "Scanning..." : "OCR Scan"}
+              {ocrLoading ? "Submitting..." : hasPendingJob ? "Processing..." : "OCR Scan"}
             </button>
           )}
           <a
@@ -171,12 +185,6 @@ export default function DocumentViewerPage() {
               className="max-h-[80vh] max-w-full rounded-lg object-contain"
             />
           </div>
-          {ocrLoading && (
-            <div className="flex items-center justify-center gap-2 rounded-lg bg-muted px-4 py-3">
-              <div className="h-4 w-4 animate-spin rounded-full border-2 border-gray-300 border-t-gold" />
-              <span className="text-sm text-ink-muted">Extracting text...</span>
-            </div>
-          )}
           {ocrText && (
             <div className="rounded-xl border border-gray-200 bg-surface p-5 shadow-sm">
               <h2 className="mb-2 text-sm font-semibold text-deep">

@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { processLocalImage } from "./ocrFunctions";
+import { createLocalOcrJob } from "@/app/lib/job-manager";
+import { writeFile } from "fs/promises";
+import path from "path";
+import os from "os";
 
 export async function POST(request: NextRequest) {
   try {
@@ -10,13 +13,17 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "No file provided" }, { status: 400 });
     }
 
-    const imageResult = await processLocalImage(file);
+    const buffer = Buffer.from(await file.arrayBuffer());
+    const tempPath = path.join(os.tmpdir(), `ocr-${Date.now()}-${file.name}`);
+    await writeFile(tempPath, buffer);
 
-    return NextResponse.json({ result: imageResult });
+    const { id } = await createLocalOcrJob(tempPath);
+
+    return NextResponse.json({ jobId: id });
   } catch (error) {
-    console.error("OCR failed:", error);
+    console.error("OCR submission failed:", error);
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Upload failed" },
+      { error: error instanceof Error ? error.message : "Submission failed" },
       { status: 500 },
     );
   }
