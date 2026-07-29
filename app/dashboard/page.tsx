@@ -302,10 +302,10 @@ export default function DashboardPage() {
               <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-deep/5 text-[10px] font-bold text-deep sm:h-9 sm:w-9 sm:text-xs">
                 {doc.type}
               </div>
-              <div className="w-32 md:flex-1 md:min-w-0 truncate">
+              <div className="w-32 flex-1 md:min-w-0 truncate">
                 <Link
                   href={`/dashboard/documents/${encodeURIComponent(doc.id)}`}
-                  className="text-[12px] md:text-sm font-medium text-deep hover:text-gold transition-colors block"
+                  className="text-[12px] md:text-sm font-medium text-deep hover:text-gold transition-colors"
                 >
                   {doc.name}
                 </Link>

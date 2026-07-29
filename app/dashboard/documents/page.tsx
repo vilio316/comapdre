@@ -144,7 +144,7 @@ export default function DocumentsPage() {
               <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-deep/5 text-xs font-bold text-deep sm:h-10 sm:w-10">
                 {doc.type}
               </div>
-              <div className="min-w-0 flex-1">
+              <div className="w-32 truncate md:min-w-0 flex-1">
                 <Link
                   href={`/dashboard/documents/${encodeURIComponent(doc.id)}`}
                   className="truncate text-sm font-medium text-deep hover:text-gold transition-colors"
