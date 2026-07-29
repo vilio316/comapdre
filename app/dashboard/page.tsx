@@ -60,7 +60,7 @@ const quickActions = [
   },
   {
     title: "OCR",
-    desc: "Scan documents for text",
+    desc: "Scan local documents for text",
     href: "/dashboard/ocr",
     icon: (
       <svg
