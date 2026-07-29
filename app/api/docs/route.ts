@@ -125,6 +125,188 @@ const spec = {
         },
       },
     },
+    "/api/ocr": {
+      post: {
+        summary: "Extract text from uploaded images",
+        description:
+          "Accepts one or more image files, saves them to a temporary location, and enqueues an OCR job. The returned jobId can be polled via GET /api/ocr/status/{jobId}. For multiple images the prompt asks Gemini to summarise all contents into a single response.",
+        operationId: "submitLocalOcr",
+        requestBody: {
+          required: true,
+          content: {
+            "multipart/form-data": {
+              schema: {
+                type: "object",
+                required: ["files"],
+                properties: {
+                  files: {
+                    type: "array",
+                    items: { type: "string", format: "binary" },
+                    description: "One or more image files (PNG, JPG, WEBP).",
+                  },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          "200": {
+            description: "OCR job enqueued.",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    jobId: { type: "string", description: "BullMQ job ID to poll for results." },
+                  },
+                },
+              },
+            },
+          },
+          "400": {
+            description: "No files provided.",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    error: { type: "string" },
+                  },
+                },
+              },
+            },
+          },
+          "500": {
+            description: "OCR submission failed.",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    error: { type: "string" },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    "/api/ocr/status/{jobId}": {
+      get: {
+        summary: "Poll the result of an OCR job",
+        description:
+          "Returns the current status of an OCR job. When status is 'done', the result field contains the extracted text. When 'failed', the error field describes the failure.",
+        operationId: "getOcrStatus",
+        parameters: [
+          {
+            name: "jobId",
+            in: "path",
+            required: true,
+            schema: { type: "string" },
+            description: "Job ID returned by POST /api/ocr or POST /api/documents/{key}/ocr.",
+          },
+        ],
+        responses: {
+          "200": {
+            description: "Job status.",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    status: {
+                      type: "string",
+                      enum: ["done", "failed", "processing"],
+                      description: "Current job state.",
+                    },
+                    result: {
+                      type: "string",
+                      description: "Extracted/sanitised text (present when status is 'done').",
+                    },
+                    error: {
+                      type: "string",
+                      description: "Error message (present when status is 'failed').",
+                    },
+                  },
+                },
+              },
+            },
+          },
+          "404": {
+            description: "Job not found.",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    error: { type: "string" },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    "/api/documents/{key}/ocr": {
+      post: {
+        summary: "Extract text from a cloudflare-hosted document",
+        description:
+          "Generates a signed URL for the stored document and enqueues an OCR job. Supports images (PNG, JPG) and documents (PDF, DOCX). Images are sent by URI; documents are downloaded and sent as base64. Results are cached in Redis for 30 days. If a cached result exists it is returned immediately without enqueuing a job. If an active job for the same key already exists its existing jobId is returned to prevent duplicates.",
+        operationId: "submitDocumentOcr",
+        parameters: [
+          {
+            name: "key",
+            in: "path",
+            required: true,
+            schema: { type: "string" },
+            description:
+              "URL-encoded file key (filename as stored in the bucket).",
+          },
+        ],
+        responses: {
+          "200": {
+            description: "Cached result or new job enqueued.",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    cached: {
+                      type: "boolean",
+                      description: "True if the result was served from cache.",
+                    },
+                    result: {
+                      type: "string",
+                      description: "Extracted text (present when cached is true).",
+                    },
+                    jobId: {
+                      type: "string",
+                      description: "BullMQ job ID to poll (present when cached is false).",
+                    },
+                  },
+                },
+              },
+            },
+          },
+          "500": {
+            description: "Failed to queue document OCR.",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    error: { type: "string" },
+                    success: { type: "boolean", enum: [false] },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
     "/api/documents/{key}": {
       get: {
         summary: "Get a signed URL for a specific document",
@@ -364,7 +546,7 @@ const spec = {
           name: { type: "string", description: "File name." },
           type: {
             type: "string",
-            enum: ["PDF", "DOCX", "FILE"],
+            enum: ["pdf", "docx", "jpeg", "png", "other"],
             description: "Detected file type from extension.",
           },
           size: {
