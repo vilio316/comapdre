@@ -3,8 +3,8 @@ import { getCachedOcrResult, setCachedOcrResult } from "./ocr-cache";
 
 export { getCachedOcrResult, setCachedOcrResult };
 
-export async function createLocalOcrJob(filePath: string): Promise<{ id: string }> {
-  const job = await ocrQueue.add("ocr", { type: "local", filePath });
+export async function createLocalOcrJob(filePaths: string[]): Promise<{ id: string }> {
+  const job = await ocrQueue.add("ocr", { type: "local", filePaths });
   return { id: job.id! };
 }
 

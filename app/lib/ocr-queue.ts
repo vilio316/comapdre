@@ -1,6 +1,6 @@
 import { Queue, Worker, Job } from "bullmq";
 import redis from "./redis";
-import { processLocalImage, processOnlineImage } from "@/app/api/ocr/ocrFunctions";
+import { processLocalImages, processOnlineImage } from "@/app/api/ocr/ocrFunctions";
 import { setCachedOcrResult } from "@/app/lib/ocr-cache";
 import fs from "fs/promises";
 
@@ -24,9 +24,9 @@ export function startWorker() {
   worker = new Worker(
     OCR_QUEUE,
     async (job: Job) => {
-      const { type, filePath, imageUrl, documentKey } = job.data as {
+      const { type, filePaths, imageUrl, documentKey } = job.data as {
         type: "local" | "online";
-        filePath?: string;
+        filePaths?: string[];
         imageUrl?: string;
         documentKey?: string;
       };
@@ -39,17 +39,21 @@ export function startWorker() {
         return result;
       }
 
-      if (type === "local" && filePath) {
+      if (type === "local" && filePaths && filePaths.length > 0) {
         try {
-          const buffer = await fs.readFile(filePath);
-          const file = new File([buffer], "upload", { type: "image/jpeg" });
-          return await processLocalImage(file);
+          const files = await Promise.all(
+            filePaths.map(async (fp) => {
+              const buffer = await fs.readFile(fp);
+              return new File([buffer], "upload", { type: "image/jpeg" });
+            }),
+          );
+          return await processLocalImages(files);
         } finally {
-          await fs.unlink(filePath).catch(() => {});
+          await Promise.all(filePaths.map((fp) => fs.unlink(fp).catch(() => {})));
         }
       }
 
-      throw new Error(`Invalid job: type=${type}, filePath=${filePath}, imageUrl=${imageUrl}`);
+      throw new Error(`Invalid job: type=${type}, filePaths=${JSON.stringify(filePaths)}, imageUrl=${imageUrl}`);
     },
     {
       connection: redis,

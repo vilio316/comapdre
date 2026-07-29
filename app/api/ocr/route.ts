@@ -7,17 +7,22 @@ import os from "os";
 export async function POST(request: NextRequest) {
   try {
     const formData = await request.formData();
-    const file = formData.get("file") as File | null;
+    const entries = formData.getAll("files") as File[];
 
-    if (!file) {
-      return NextResponse.json({ error: "No file provided" }, { status: 400 });
+    if (!entries || entries.length === 0) {
+      return NextResponse.json({ error: "No files provided" }, { status: 400 });
     }
 
-    const buffer = Buffer.from(await file.arrayBuffer());
-    const tempPath = path.join(os.tmpdir(), `ocr-${Date.now()}-${file.name}`);
-    await writeFile(tempPath, buffer);
+    const tempPaths = await Promise.all(
+      entries.map(async (file) => {
+        const buffer = Buffer.from(await file.arrayBuffer());
+        const tempPath = path.join(os.tmpdir(), `ocr-${Date.now()}-${file.name}`);
+        await writeFile(tempPath, buffer);
+        return tempPath;
+      }),
+    );
 
-    const { id } = await createLocalOcrJob(tempPath);
+    const { id } = await createLocalOcrJob(tempPaths);
 
     return NextResponse.json({ jobId: id });
   } catch (error) {

@@ -6,8 +6,8 @@ import { useOcr } from "@/app/context/ocr-context";
 
 export default function OCRPage() {
   const { jobs, submitFileOcr } = useOcr();
-  const [file, setFile] = useState<File | null>(null);
-  const [preview, setPreview] = useState<string | null>(null);
+  const [files, setFiles] = useState<File[]>([]);
+  const [previews, setPreviews] = useState<string[]>([]);
   const [jobId, setJobId] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [dragOver, setDragOver] = useState(false);
@@ -18,30 +18,37 @@ export default function OCRPage() {
   const isProcessing = job && (job.status === "pending" || job.status === "processing");
 
   const submitOcr = useCallback(async () => {
-    if (!file) return;
+    if (files.length === 0) return;
     setSubmitting(true);
     try {
-      const id = await submitFileOcr(file, file.name);
+      const label = files.length === 1 ? files[0].name : `${files.length} files`;
+      const id = await submitFileOcr(files, label);
       setJobId(id);
     } catch {
       // error toast handled by context
     } finally {
       setSubmitting(false);
     }
-  }, [file, submitFileOcr]);
+  }, [files, submitFileOcr]);
 
-  const handleFile = (f: File) => {
-    if (!f.type.startsWith("image/")) return;
-    setFile(f);
+  const handleFiles = (newFiles: FileList) => {
+    const images = Array.from(newFiles).filter((f) => f.type.startsWith("image/"));
+    if (images.length === 0) return;
+    setFiles(images);
     setJobId(null);
-    const reader = new FileReader();
-    reader.onload = () => setPreview(reader.result as string);
-    reader.readAsDataURL(f);
+    const readers = images.map((f) => {
+      return new Promise<string>((resolve) => {
+        const r = new FileReader();
+        r.onload = () => resolve(r.result as string);
+        r.readAsDataURL(f);
+      });
+    });
+    Promise.all(readers).then(setPreviews);
   };
 
   const reset = useCallback(() => {
-    setFile(null);
-    setPreview(null);
+    setFiles([]);
+    setPreviews([]);
     setJobId(null);
   }, []);
 
@@ -64,9 +71,9 @@ export default function OCRPage() {
             onDrop={(e) => {
               e.preventDefault();
               setDragOver(false);
-              handleFile(e.dataTransfer.files[0]);
+              handleFiles(e.dataTransfer.files);
             }}
-            onClick={() => !file && inputRef.current?.click()}
+            onClick={() => files.length === 0 && inputRef.current?.click()}
             className={`flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed p-8 transition-colors sm:p-12 ${
               dragOver
                 ? "border-blue bg-blue/5"
@@ -77,20 +84,26 @@ export default function OCRPage() {
               ref={inputRef}
               type="file"
               accept="image/*"
+              multiple
               className="hidden"
               onChange={(e) =>
-                e.target.files?.[0] && handleFile(e.target.files[0])
+                e.target.files && handleFiles(e.target.files)
               }
             />
-            {preview ? (
-              <Image
-                src={preview}
-                alt="Uploaded"
-                width={400}
-                height={300}
-                className="max-h-56 w-auto rounded-lg object-contain sm:max-h-64"
-                unoptimized
-              />
+            {previews.length > 0 ? (
+              <div className="flex flex-wrap gap-2 justify-center">
+                {previews.map((src, i) => (
+                  <Image
+                    key={i}
+                    src={src}
+                    alt={`Uploaded ${i + 1}`}
+                    width={160}
+                    height={120}
+                    className="h-24 w-auto rounded-lg object-contain"
+                    unoptimized
+                  />
+                ))}
+              </div>
             ) : (
               <>
                 <svg
@@ -111,20 +124,20 @@ export default function OCRPage() {
                   or drag and drop
                 </p>
                 <p className="mt-1 text-xs text-ink-muted">
-                  PNG, JPG, WEBP up to 10MB
+                  PNG, JPG, WEBP — select multiple images
                 </p>
               </>
             )}
           </div>
 
-          {file && !isProcessing && !text && (
+          {files.length > 0 && !isProcessing && !text && (
             <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:gap-3">
               <button
                 onClick={submitOcr}
                 disabled={submitting}
                 className="w-full rounded-lg bg-gold px-6 py-2.5 text-sm font-medium text-deep transition-colors hover:bg-gold-light disabled:opacity-50 sm:w-auto"
               >
-                {submitting ? "Submitting..." : "Scan for Text"}
+                {submitting ? "Submitting..." : `Scan ${files.length > 1 ? `(${files.length} images)` : "for Text"}`}
               </button>
               <button
                 onClick={reset}

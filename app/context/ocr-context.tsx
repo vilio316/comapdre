@@ -17,7 +17,7 @@ export interface OcrSubmitResult {
 
 interface OcrContextValue {
   jobs: Record<string, OcrJobState>;
-  submitFileOcr: (file: File, label?: string) => Promise<string>;
+  submitFileOcr: (files: File[], label?: string) => Promise<string>;
   submitDocumentOcr: (documentId: string, label?: string) => Promise<OcrSubmitResult>;
 }
 
@@ -126,21 +126,24 @@ export function OcrProvider({ children }: { children: React.ReactNode }) {
   }, [jobs, pollOnce]);
 
   const submitFileOcr = useCallback(
-    async (file: File, label?: string): Promise<string> => {
+    async (files: File[], label?: string): Promise<string> => {
       const formData = new FormData();
-      formData.append("file", file);
+      for (const file of files) {
+        formData.append("files", file);
+      }
 
       const res = await fetch("/api/ocr", { method: "POST", body: formData });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Submission failed");
 
       const jobId = data.jobId;
-      updateJob(jobId, { status: "pending", label: label || "Image OCR" });
+      const fileLabel = files.length === 1 ? (label || "Image OCR") : `${files.length} images`;
+      updateJob(jobId, { status: "pending", label: fileLabel });
 
       const nid = addNotification({
         type: "loading",
         title: "OCR in Progress",
-        message: label || "Image OCR",
+        message: fileLabel,
         duration: 0,
       });
       notifIds.current.set(jobId, nid);
