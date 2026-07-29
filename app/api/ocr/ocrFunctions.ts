@@ -1,4 +1,5 @@
 import { GoogleGenAI } from "@google/genai";
+import { sanitizeText } from "@/app/lib/text-sanitize";
 
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_KEY });
 
@@ -32,7 +33,7 @@ export async function processLocalImages(files: File[]) {
     ],
   });
 
-  return request.output_text;
+  return sanitizeText(request.output_text);
 }
 
 export async function processOnlineImage(url: string) {
@@ -46,5 +47,25 @@ export async function processOnlineImage(url: string) {
       },
     ],
   });
-  return processOnlineInteraction.output_text;
+  return sanitizeText(processOnlineInteraction.output_text);
+}
+
+export async function processOnlineDocument(url: string, mimeType: string) {
+  const response = await fetch(url);
+  const buffer = Buffer.from(await response.arrayBuffer());
+  const base64 = buffer.toString("base64");
+
+  const request = await ai.interactions.create({
+    model: "gemini-3.6-flash",
+    input: [
+      { type: "text", text: "Extract all text from this document." },
+      {
+        type: "document",
+        data: base64,
+        mime_type: mimeType,
+      },
+    ],
+  });
+
+  return sanitizeText(request.output_text);
 }

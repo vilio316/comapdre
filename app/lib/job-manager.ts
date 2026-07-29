@@ -11,8 +11,9 @@ export async function createLocalOcrJob(filePaths: string[]): Promise<{ id: stri
 export async function createOnlineOcrJob(
   imageUrl: string,
   documentKey?: string,
+  mimeType?: string,
 ): Promise<{ id: string }> {
-  const job = await ocrQueue.add("ocr", { type: "online", imageUrl, documentKey });
+  const job = await ocrQueue.add("ocr", { type: "online", imageUrl, documentKey, mimeType });
   return { id: job.id! };
 }
 
