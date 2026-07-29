@@ -4,6 +4,7 @@ import Script from "next/script";
 import Navbar from "@/app/components/navbar";
 import { ThemeProvider } from "@/app/components/theme-provider";
 import { NotificationProvider } from "@/app/context/notification-context";
+import { OcrProvider } from "@/app/context/ocr-context";
 import { ToastContainer } from "@/app/components/toast-container";
 import InstallPrompt from "@/app/components/install-prompt";
 import "./globals.css";
@@ -62,10 +63,12 @@ export default function RootLayout({
       <body className="flex min-h-full flex-col">
         <ThemeProvider>
           <NotificationProvider>
-            <Navbar />
-            <main className="flex-1 pb-16 sm:pb-0">{children}</main>
-            <InstallPrompt />
-            <ToastContainer />
+            <OcrProvider>
+              <Navbar />
+              <main className="flex-1 pb-16 sm:pb-0">{children}</main>
+              <InstallPrompt />
+              <ToastContainer />
+            </OcrProvider>
           </NotificationProvider>
         </ThemeProvider>
       </body>

@@ -1,6 +1,6 @@
 import { NextResponse, NextRequest } from "next/server";
 import { getObjectSignedUrl } from "@/lib/cloudflareHelper";
-import { createOnlineOcrJob } from "@/app/lib/job-manager";
+import { createOnlineOcrJob, getCachedOcrResult } from "@/app/lib/job-manager";
 
 export async function POST(
   request: NextRequest,
@@ -10,9 +10,14 @@ export async function POST(
     const { key } = await params;
     const decodedKey = decodeURIComponent(key);
 
+    const cached = await getCachedOcrResult(decodedKey);
+    if (cached) {
+      return NextResponse.json({ cached: true, result: cached });
+    }
+
     const url = await getObjectSignedUrl(decodedKey);
 
-    const { id } = await createOnlineOcrJob(url);
+    const { id } = await createOnlineOcrJob(url, decodedKey);
 
     return NextResponse.json({ jobId: id });
   } catch (error) {

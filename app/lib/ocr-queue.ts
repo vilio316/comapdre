@@ -1,6 +1,7 @@
 import { Queue, Worker, Job } from "bullmq";
 import redis from "./redis";
 import { processLocalImage, processOnlineImage } from "@/app/api/ocr/ocrFunctions";
+import { setCachedOcrResult } from "@/app/lib/job-manager";
 import fs from "fs/promises";
 
 const OCR_QUEUE = "ocr";
@@ -23,14 +24,19 @@ export function startWorker() {
   worker = new Worker(
     OCR_QUEUE,
     async (job: Job) => {
-      const { type, filePath, imageUrl } = job.data as {
+      const { type, filePath, imageUrl, documentKey } = job.data as {
         type: "local" | "online";
         filePath?: string;
         imageUrl?: string;
+        documentKey?: string;
       };
 
       if (type === "online" && imageUrl) {
-        return await processOnlineImage(imageUrl);
+        const result = await processOnlineImage(imageUrl);
+        if (documentKey && result) {
+          await setCachedOcrResult(documentKey, result);
+        }
+        return result;
       }
 
       if (type === "local" && filePath) {
