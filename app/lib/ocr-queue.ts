@@ -1,7 +1,7 @@
 import { Queue, Worker, Job } from "bullmq";
 import redis from "./redis";
 import { processLocalImage, processOnlineImage } from "@/app/api/ocr/ocrFunctions";
-import { setCachedOcrResult } from "@/app/lib/job-manager";
+import { setCachedOcrResult } from "@/app/lib/ocr-cache";
 import fs from "fs/promises";
 
 const OCR_QUEUE = "ocr";
