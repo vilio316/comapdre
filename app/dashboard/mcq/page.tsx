@@ -5,7 +5,7 @@ import Image from "next/image";
 
 const sampleQuestions = [
   {
-    q: 'What is the primary benefit of using a static type system in large-scale frontend applications?',
+    q: "What is the primary benefit of using a static type system in large-scale frontend applications?",
     options: [
       "Faster runtime execution",
       "Early detection of type-related errors during development",
@@ -25,7 +25,7 @@ const sampleQuestions = [
     answer: 0,
   },
   {
-    q: 'Which of the following is a recommended outreach channel mentioned in the distribution strategy?',
+    q: "Which of the following is a recommended outreach channel mentioned in the distribution strategy?",
     options: [
       "Television advertising",
       "LinkedIn micro-outreach messaging",
@@ -35,7 +35,7 @@ const sampleQuestions = [
     answer: 1,
   },
   {
-    q: 'What is the recommended sample size baseline for survey responses in the research timeline?',
+    q: "What is the recommended sample size baseline for survey responses in the research timeline?",
     options: [
       "20+ responses",
       "50+ responses",
@@ -45,17 +45,12 @@ const sampleQuestions = [
     answer: 2,
   },
   {
-    q: 'Which statistical test is suggested for cross-tabulation profile checks in the research methodology?',
-    options: [
-      "T-test",
-      "ANOVA",
-      "Chi-Square",
-      "Regression analysis",
-    ],
+    q: "Which statistical test is suggested for cross-tabulation profile checks in the research methodology?",
+    options: ["T-test", "ANOVA", "Chi-Square", "Regression analysis"],
     answer: 2,
   },
   {
-    q: 'What does the Cronbach\'s Alpha test measure in survey design?',
+    q: "What does the Cronbach's Alpha test measure in survey design?",
     options: [
       "Sample size adequacy",
       "Internal consistency reliability",
@@ -65,23 +60,13 @@ const sampleQuestions = [
     answer: 1,
   },
   {
-    q: 'According to the research framework, what is the total collective hours available per week?',
-    options: [
-      "10 hours",
-      "15 hours",
-      "20 hours",
-      "25 hours",
-    ],
+    q: "According to the research framework, what is the total collective hours available per week?",
+    options: ["10 hours", "15 hours", "20 hours", "25 hours"],
     answer: 2,
   },
   {
-    q: 'What tool is recommended for building a collaborative reference repository?',
-    options: [
-      "EndNote",
-      "Mendeley",
-      "Zotero",
-      "RefWorks",
-    ],
+    q: "What tool is recommended for building a collaborative reference repository?",
+    options: ["EndNote", "Mendeley", "Zotero", "RefWorks"],
     answer: 2,
   },
 ];
@@ -93,6 +78,7 @@ export default function MCQPage() {
   const [selected, setSelected] = useState<Record<number, number>>({});
   const [loading, setLoading] = useState(false);
   const [dragOver, setDragOver] = useState(false);
+  const [questionCount, setQuestionCount] = useState(5);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const score = Object.entries(selected).filter(
@@ -114,15 +100,17 @@ export default function MCQPage() {
       });
     });
     Promise.all(readers).then(setPreviews);
+  };
 
+  const generate = useCallback(() => {
+    const count = Math.min(sampleQuestions.length, questionCount);
     setLoading(true);
     setTimeout(() => {
-      const count = Math.min(sampleQuestions.length, 3 + docs.length * 2);
       setQuestions(sampleQuestions.slice(0, count));
       setSelected({});
       setLoading(false);
     }, 800);
-  };
+  }, [questionCount]);
 
   const reset = useCallback(() => {
     setFiles([]);
@@ -141,7 +129,7 @@ export default function MCQPage() {
         Upload documents to generate practice multiple-choice questions.
       </p>
 
-      <div className="mt-6 grid gap-6 md:grid-cols-2">
+      <div className="mt-6 grid gap-6">
         <div>
           <div
             onDragOver={(e) => {
@@ -182,10 +170,7 @@ export default function MCQPage() {
                     unoptimized
                   />
                 ))}
-                {files.some(
-                  (f) =>
-                    !f.type.startsWith("image/"),
-                ) && (
+                {files.some((f) => !f.type.startsWith("image/")) && (
                   <p className="w-full text-center text-xs text-ink-muted mt-2">
                     {files.length} file{files.length > 1 ? "s" : ""} selected
                   </p>
@@ -207,9 +192,7 @@ export default function MCQPage() {
                   />
                 </svg>
                 <p className="text-center text-sm text-ink-muted">
-                  <span className="font-medium text-deep">
-                    Tap to upload
-                  </span>{" "}
+                  <span className="font-medium text-deep">Tap to upload</span>{" "}
                   or drag and drop
                 </p>
                 <p className="mt-1 text-xs text-ink-muted">
@@ -220,20 +203,28 @@ export default function MCQPage() {
           </div>
 
           {files.length > 0 && !loading && questions.length === 0 && (
-            <div className="mt-3 flex justify-center">
+            <div className="mt-4 flex flex-col items-center gap-3">
+              <div className="flex items-center gap-2">
+                <label className="text-sm text-ink-muted">Questions:</label>
+                <select
+                  value={questionCount}
+                  onChange={(e) => setQuestionCount(Number(e.target.value))}
+                  className="rounded-lg border border-gray-300 bg-surface px-3 py-1.5 text-sm outline-none focus:border-blue focus:ring-2 focus:ring-blue/20"
+                >
+                  {[3, 5, 8, 10, 15].map((n) => (
+                    <option
+                      key={n}
+                      value={n}
+                      disabled={n > sampleQuestions.length}
+                    >
+                      {n}
+                      {n > sampleQuestions.length ? " (max)" : ""}
+                    </option>
+                  ))}
+                </select>
+              </div>
               <button
-                onClick={() => {
-                  setLoading(true);
-                  setTimeout(() => {
-                    const count = Math.min(
-                      sampleQuestions.length,
-                      3 + files.length * 2,
-                    );
-                    setQuestions(sampleQuestions.slice(0, count));
-                    setSelected({});
-                    setLoading(false);
-                  }, 800);
-                }}
+                onClick={generate}
                 className="rounded-lg bg-gold px-5 py-2 text-sm font-medium text-deep transition-colors hover:bg-gold-light"
               >
                 Generate MCQs
@@ -261,12 +252,36 @@ export default function MCQPage() {
                     {score}/{questions.length}
                   </span>
                 </p>
-                <button
-                  onClick={reset}
-                  className="text-sm text-ink-muted underline hover:text-deep"
-                >
-                  Clear
-                </button>
+                <div className="flex items-center gap-3">
+                  <select
+                    value={questionCount}
+                    onChange={(e) => setQuestionCount(Number(e.target.value))}
+                    className="rounded-lg border border-gray-200 bg-surface px-2 py-1 text-xs outline-none focus:border-blue focus:ring-2 focus:ring-blue/20"
+                  >
+                    {[3, 5, 8, 10, 15].map((n) => (
+                      <option
+                        key={n}
+                        value={n}
+                        disabled={n > sampleQuestions.length}
+                      >
+                        {n}
+                      </option>
+                    ))}
+                  </select>
+                  <button
+                    onClick={generate}
+                    disabled={loading}
+                    className="text-xs text-ink-muted underline hover:text-deep disabled:opacity-50"
+                  >
+                    Regenerate
+                  </button>
+                  <button
+                    onClick={reset}
+                    className="text-sm text-ink-muted underline hover:text-deep"
+                  >
+                    Clear
+                  </button>
+                </div>
               </div>
 
               <div className="space-y-4 sm:space-y-5">
@@ -320,9 +335,9 @@ export default function MCQPage() {
           )}
 
           {!loading && questions.length === 0 && files.length === 0 && (
-            <div className="flex h-full min-h-[200px] items-center justify-center rounded-xl border border-dashed border-gray-200 p-8">
+            <div className="flex h-full min-h-50 items-center justify-center rounded-xl border border-dashed border-gray-200 p-8">
               <p className="text-center text-sm text-ink-muted">
-                Upload documents on the left to generate MCQs
+                Upload documents to generate MCQs
               </p>
             </div>
           )}

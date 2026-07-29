@@ -33,6 +33,7 @@ export function OcrProvider({ children }: { children: React.ReactNode }) {
   const { success, error, addNotification, removeNotification } = useNotifications();
   const [jobs, setJobs] = useState<Record<string, OcrJobState>>({});
   const notifIds = useRef<Map<string, string>>(new Map());
+  const docIds = useRef<Map<string, string>>(new Map());
   const pollTimer = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const updateJob = useCallback((jobId: string, state: OcrJobState) => {
@@ -70,7 +71,14 @@ export function OcrProvider({ children }: { children: React.ReactNode }) {
                 next[jobId] = { status: "done", result: data.result, label: job.label };
                 const nid = notifIds.current.get(jobId);
                 if (nid) { removeNotification(nid); notifIds.current.delete(jobId); }
-                success("OCR Complete", job.label || "Text extraction finished");
+                const docId = docIds.current.get(jobId);
+                addNotification({
+                  type: "success",
+                  title: "OCR Complete",
+                  message: job.label || "Text extraction finished",
+                  action: docId ? { label: "View Document", href: `/dashboard/documents/${encodeURIComponent(docId)}` } : undefined,
+                });
+                if (docId) docIds.current.delete(jobId);
               } else if (data.status === "failed") {
                 next[jobId] = { status: "failed", error: data.error, label: job.label };
                 const nid = notifIds.current.get(jobId);
@@ -162,11 +170,17 @@ export function OcrProvider({ children }: { children: React.ReactNode }) {
       if (!res.ok) throw new Error(data.error || "Submission failed");
 
       if (data.cached) {
-        success("OCR Complete (cached)", label || "Document OCR");
+        addNotification({
+          type: "success",
+          title: "OCR Complete (cached)",
+          message: label || "Document OCR",
+          action: { label: "View Document", href: `/dashboard/documents/${encodeURIComponent(documentId)}` },
+        });
         return { jobId: null, cachedResult: data.result };
       }
 
       const jobId = data.jobId;
+      docIds.current.set(jobId, documentId);
       updateJob(jobId, { status: "pending", label: label || "Document OCR" });
 
       const nid = addNotification({
@@ -179,7 +193,7 @@ export function OcrProvider({ children }: { children: React.ReactNode }) {
 
       return { jobId };
     },
-    [updateJob, addNotification, success],
+    [updateJob, addNotification],
   );
 
   return (

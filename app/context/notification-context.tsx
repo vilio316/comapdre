@@ -4,12 +4,18 @@ import { createContext, useContext, useCallback, useState, useRef } from "react"
 
 export type NotificationType = "success" | "error" | "info" | "loading";
 
+export interface NotificationAction {
+  label: string;
+  href: string;
+}
+
 export interface Notification {
   id: string;
   type: NotificationType;
   title: string;
   message?: string;
   duration?: number;
+  action?: NotificationAction;
 }
 
 interface NotificationContextValue {

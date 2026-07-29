@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useNotifications } from "@/app/context/notification-context";
 
 const iconMap: Record<string, string> = {
@@ -32,6 +33,14 @@ export function ToastContainer() {
           <div className="min-w-0 flex-1">
             <p className="text-sm font-semibold text-deep">{n.title}</p>
             {n.message && <p className="mt-0.5 text-xs text-ink-muted">{n.message}</p>}
+            {n.action && (
+              <Link
+                href={n.action.href}
+                className="mt-1 inline-block text-xs font-medium text-blue-600 hover:text-blue-700 underline"
+              >
+                {n.action.label}
+              </Link>
+            )}
           </div>
           <button
             onClick={() => removeNotification(n.id)}
