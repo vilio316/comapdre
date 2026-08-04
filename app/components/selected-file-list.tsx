@@ -12,11 +12,11 @@ function fileTypeLabel(name: string, mimeType: string): string {
 
 export default function SelectedFileList({ files }: { files: File[] }) {
   return (
-    <ul className="flex w-full flex-col gap-2">
+    <ul className="flex max-w-64 md:max-w-200 flex-col gap-2">
       {files.map((f, i) => (
         <li
           key={i}
-          className="flex w-full items-center gap-3 rounded-lg border border-gray-200 bg-surface px-3 py-2.5"
+          className="flex items-center gap-3 rounded-lg border border-gray-200 bg-surface px-3 py-2.5"
         >
           <svg
             className="h-5 w-5 shrink-0 text-ink-muted"

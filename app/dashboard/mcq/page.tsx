@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import SelectedFileList from "@/app/components/selected-file-list";
 
 interface McqQuestion {
@@ -9,8 +9,18 @@ interface McqQuestion {
   answer: number;
 }
 
+interface StoredDoc {
+  id: string;
+  name: string;
+  type: string;
+}
+
 export default function MCQPage() {
   const [files, setFiles] = useState<File[]>([]);
+  const [storedDocs, setStoredDocs] = useState<StoredDoc[]>([]);
+  const [selectedKeys, setSelectedKeys] = useState<string[]>([]);
+  const [pickKey, setPickKey] = useState("");
+  const [loadingDocs, setLoadingDocs] = useState(true);
   const [questions, setQuestions] = useState<McqQuestion[]>([]);
   const [selected, setSelected] = useState<Record<number, number>>({});
   const [loading, setLoading] = useState(false);
@@ -33,6 +43,37 @@ export default function MCQPage() {
 
   const answeredCount = Object.keys(selected).length;
 
+  const hasInput = files.length > 0 || selectedKeys.length > 0;
+
+  useEffect(() => {
+    fetch("/api/documents")
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.docs) {
+          setStoredDocs(
+            data.docs.map((d: { id: string; name: string; type: string }) => ({
+              id: d.id,
+              name: d.name,
+              type: d.type,
+            })),
+          );
+        }
+      })
+      .catch(console.error)
+      .finally(() => setLoadingDocs(false));
+  }, []);
+
+  const addKey = useCallback(() => {
+    if (pickKey && !selectedKeys.includes(pickKey)) {
+      setSelectedKeys((prev) => [...prev, pickKey]);
+    }
+    setPickKey("");
+  }, [pickKey, selectedKeys]);
+
+  const removeKey = useCallback((key: string) => {
+    setSelectedKeys((prev) => prev.filter((k) => k !== key));
+  }, []);
+
   const handleFiles = (newFiles: FileList) => {
     const docs = Array.from(newFiles);
     if (docs.length === 0) return;
@@ -43,13 +84,14 @@ export default function MCQPage() {
   };
 
   const generate = useCallback(async () => {
-    if (files.length === 0) return;
+    if (!hasInput) return;
     setLoading(true);
     setError(null);
     try {
       const formData = new FormData();
       formData.append("count", String(questionCount));
       files.forEach((f) => formData.append("files", f));
+      selectedKeys.forEach((k) => formData.append("keys", k));
 
       const res = await fetch("/api/mcq", { method: "POST", body: formData });
       const data = await res.json();
@@ -64,10 +106,11 @@ export default function MCQPage() {
     } finally {
       setLoading(false);
     }
-  }, [files, questionCount]);
+  }, [files, selectedKeys, questionCount, hasInput]);
 
   const reset = useCallback(() => {
     setFiles([]);
+    setSelectedKeys([]);
     setQuestions([]);
     setSelected({});
     setError(null);
@@ -84,7 +127,7 @@ export default function MCQPage() {
   }, []);
 
   return (
-    <div className="mx-auto w-full px-3 py-6 sm:py-8 sm:px-4">
+    <div className="mx-auto px-3 py-6 sm:py-8 sm:px-4">
       <h1 className="text-2xl font-bold text-deep sm:text-3xl">
         MCQ Generator
       </h1>
@@ -94,6 +137,86 @@ export default function MCQPage() {
 
       <div className="mt-6 grid gap-6">
         <div>
+          <p className="mb-2 text-sm font-semibold text-deep">
+            Select from your documents
+          </p>
+          {loadingDocs ? (
+            <div className="flex items-center justify-center rounded-lg border border-gray-200 bg-surface p-4">
+              <div className="h-4 w-4 animate-spin rounded-full border-2 border-gray-300 border-t-gold" />
+            </div>
+          ) : storedDocs.length === 0 ? (
+            <p className="rounded-lg border border-gray-200 bg-surface p-4 text-center text-xs text-ink-muted">
+              No stored documents found.
+            </p>
+          ) : (
+            <div>
+              <div className="flex items-center gap-2">
+                <select
+                  value={pickKey}
+                  onChange={(e) => setPickKey(e.target.value)}
+                  className="min-w-0 flex-1 rounded-lg border border-gray-300 bg-surface px-3 py-2 text-sm outline-none focus:border-blue focus:ring-2 focus:ring-blue/20"
+                >
+                  <option value="">Select a document...</option>
+                  {storedDocs
+                    .filter((d) => !selectedKeys.includes(d.id))
+                    .map((doc) => (
+                      <option key={doc.id} value={doc.id}>
+                        {doc.name}
+                      </option>
+                    ))}
+                </select>
+                <button
+                  onClick={addKey}
+                  disabled={!pickKey}
+                  className="shrink-0 rounded-lg border border-gray-300 bg-surface px-4 py-2 text-sm font-medium text-ink-muted transition-colors hover:border-gold/50 hover:text-deep disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  Add
+                </button>
+              </div>
+              {selectedKeys.length > 0 && (
+                <ul className="mt-2 space-y-1.5">
+                  {selectedKeys.map((key) => {
+                    const doc = storedDocs.find((d) => d.id === key);
+                    return (
+                      <li key={key}>
+                        <div className="flex items-center gap-2.5 rounded-lg border border-gray-200 bg-surface px-3 py-2">
+                          <span className="min-w-0 flex-1 truncate text-sm text-deep">
+                            {doc?.name ?? key}
+                          </span>
+                          <span className="shrink-0 rounded-full bg-gold/10 px-2 py-0.5 text-[11px] font-medium text-gold">
+                            {doc?.type ?? "FILE"}
+                          </span>
+                          <button
+                            onClick={() => removeKey(key)}
+                            className="shrink-0 rounded-md p-1 text-ink-muted transition-colors hover:bg-gray-100 hover:text-red-600"
+                            aria-label={`Remove ${doc?.name ?? key}`}
+                          >
+                            <svg
+                              className="h-4 w-4"
+                              fill="none"
+                              viewBox="0 0 24 24"
+                              stroke="currentColor"
+                              strokeWidth={2}
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                d="M6 18 18 6M6 6l12 12"
+                              />
+                            </svg>
+                          </button>
+                        </div>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+            </div>
+          )}
+
+          <p className="mt-5 mb-2 text-sm font-semibold text-deep">
+            Or upload local files
+          </p>
           <div
             onDragOver={(e) => {
               e.preventDefault();
@@ -106,7 +229,7 @@ export default function MCQPage() {
               handleFiles(e.dataTransfer.files);
             }}
             onClick={() => files.length === 0 && inputRef.current?.click()}
-            className={`flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed p-8 transition-colors sm:p-12 ${
+            className={`flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed p-3 transition-colors sm:p-8 ${
               dragOver
                 ? "border-blue bg-blue/5"
                 : "border-gray-300 hover:border-gold/50"
@@ -172,7 +295,7 @@ export default function MCQPage() {
             )}
           </div>
 
-          {files.length > 0 && !loading && questions.length === 0 && (
+          {hasInput && !loading && questions.length === 0 && (
             <div className="mt-4 flex flex-col items-center gap-3">
               <div className="flex items-center gap-2">
                 <label className="text-sm text-ink-muted">Questions:</label>
@@ -337,10 +460,10 @@ export default function MCQPage() {
             </div>
           )}
 
-          {!loading && questions.length === 0 && files.length === 0 && (
+          {!loading && questions.length === 0 && !hasInput && (
             <div className="flex h-full min-h-50 items-center justify-center rounded-xl border border-dashed border-gray-200 p-8">
               <p className="text-center text-sm text-ink-muted">
-                Upload documents to generate MCQs
+                Upload or select documents to generate MCQs
               </p>
             </div>
           )}

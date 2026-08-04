@@ -45,6 +45,7 @@ export function buildMcqSchema(count: number) {
 export type McqInputPart =
   | { type: "text"; text: string }
   | { type: "image"; data: string; mime_type: string }
+  | { type: "image"; uri: string }
   | { type: "document"; data: string; mime_type: string };
 
 export async function generateMcqs(
