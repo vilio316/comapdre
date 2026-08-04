@@ -1,82 +1,20 @@
 "use client";
 
 import { useState, useRef, useCallback } from "react";
-import Image from "next/image";
+import SelectedFileList from "@/app/components/selected-file-list";
 
-const sampleQuestions = [
-  {
-    q: "What is the primary benefit of using a static type system in large-scale frontend applications?",
-    options: [
-      "Faster runtime execution",
-      "Early detection of type-related errors during development",
-      "Automatic code formatting",
-      "Reduced bundle size",
-    ],
-    answer: 1,
-  },
-  {
-    q: 'In the context of the research paper, what does "IMRAD" stand for?',
-    options: [
-      "Introduction, Methods, Results, and Discussion",
-      "Investigation, Measurement, Review, and Development",
-      "Implementation, Monitoring, Reporting, and Deployment",
-      "Integration, Modeling, Runtime, and Design",
-    ],
-    answer: 0,
-  },
-  {
-    q: "Which of the following is a recommended outreach channel mentioned in the distribution strategy?",
-    options: [
-      "Television advertising",
-      "LinkedIn micro-outreach messaging",
-      "Billboard campaigns",
-      "Radio interviews",
-    ],
-    answer: 1,
-  },
-  {
-    q: "What is the recommended sample size baseline for survey responses in the research timeline?",
-    options: [
-      "20+ responses",
-      "50+ responses",
-      "80+ responses",
-      "200+ responses",
-    ],
-    answer: 2,
-  },
-  {
-    q: "Which statistical test is suggested for cross-tabulation profile checks in the research methodology?",
-    options: ["T-test", "ANOVA", "Chi-Square", "Regression analysis"],
-    answer: 2,
-  },
-  {
-    q: "What does the Cronbach's Alpha test measure in survey design?",
-    options: [
-      "Sample size adequacy",
-      "Internal consistency reliability",
-      "Response time speed",
-      "Demographic diversity",
-    ],
-    answer: 1,
-  },
-  {
-    q: "According to the research framework, what is the total collective hours available per week?",
-    options: ["10 hours", "15 hours", "20 hours", "25 hours"],
-    answer: 2,
-  },
-  {
-    q: "What tool is recommended for building a collaborative reference repository?",
-    options: ["EndNote", "Mendeley", "Zotero", "RefWorks"],
-    answer: 2,
-  },
-];
+interface McqQuestion {
+  q: string;
+  options: string[];
+  answer: number;
+}
 
 export default function MCQPage() {
   const [files, setFiles] = useState<File[]>([]);
-  const [previews, setPreviews] = useState<string[]>([]);
-  const [questions, setQuestions] = useState<typeof sampleQuestions>([]);
+  const [questions, setQuestions] = useState<McqQuestion[]>([]);
   const [selected, setSelected] = useState<Record<number, number>>({});
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [dragOver, setDragOver] = useState(false);
   const [questionCount, setQuestionCount] = useState(5);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -91,33 +29,45 @@ export default function MCQPage() {
     setFiles(docs);
     setSelected({});
     setQuestions([]);
-
-    const readers = docs.map((f) => {
-      return new Promise<string>((resolve) => {
-        const r = new FileReader();
-        r.onload = () => resolve(r.result as string);
-        r.readAsDataURL(f);
-      });
-    });
-    Promise.all(readers).then(setPreviews);
+    setError(null);
   };
 
-  const generate = useCallback(() => {
-    const count = Math.min(sampleQuestions.length, questionCount);
+  const generate = useCallback(async () => {
+    if (files.length === 0) return;
     setLoading(true);
-    setTimeout(() => {
-      setQuestions(sampleQuestions.slice(0, count));
+    setError(null);
+    try {
+      const formData = new FormData();
+      formData.append("count", String(questionCount));
+      files.forEach((f) => formData.append("files", f));
+
+      const res = await fetch("/api/mcq", { method: "POST", body: formData });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Generation failed");
+
+      setQuestions(data.questions ?? []);
       setSelected({});
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Generation failed");
+      setQuestions([]);
+    } finally {
       setLoading(false);
-    }, 800);
-  }, [questionCount]);
+    }
+  }, [files, questionCount]);
 
   const reset = useCallback(() => {
     setFiles([]);
-    setPreviews([]);
     setQuestions([]);
     setSelected({});
+    setError(null);
     setDragOver(false);
+  }, []);
+
+  const clearFiles = useCallback(() => {
+    setFiles([]);
+    setQuestions([]);
+    setSelected({});
+    setError(null);
   }, []);
 
   return (
@@ -152,29 +102,36 @@ export default function MCQPage() {
             <input
               ref={inputRef}
               type="file"
-              accept="image/*,.pdf,.docx"
+              accept=".pdf,.docx"
               multiple
               className="hidden"
               onChange={(e) => e.target.files && handleFiles(e.target.files)}
             />
-            {previews.length > 0 ? (
-              <div className="flex flex-wrap gap-2 justify-center">
-                {previews.map((src, i) => (
-                  <Image
-                    key={i}
-                    src={src}
-                    alt={`Uploaded ${i + 1}`}
-                    width={120}
-                    height={90}
-                    className="h-20 w-auto rounded-lg object-contain"
-                    unoptimized
-                  />
-                ))}
-                {files.some((f) => !f.type.startsWith("image/")) && (
-                  <p className="w-full text-center text-xs text-ink-muted mt-2">
-                    {files.length} file{files.length > 1 ? "s" : ""} selected
-                  </p>
-                )}
+            {files.length > 0 ? (
+              <div className="flex flex-col items-center gap-3">
+                <SelectedFileList files={files} />
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      inputRef.current?.click();
+                    }}
+                    className="rounded-lg border border-gray-300 bg-surface px-3 py-1.5 text-xs font-medium text-ink-muted transition-colors hover:border-gold/50 hover:text-deep"
+                  >
+                    Change files
+                  </button>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      clearFiles();
+                    }}
+                    className="rounded-lg border border-gray-300 bg-surface px-3 py-1.5 text-xs font-medium text-ink-muted transition-colors hover:border-red-300 hover:text-red-600"
+                  >
+                    Clear
+                  </button>
+                </div>
               </div>
             ) : (
               <>
@@ -212,13 +169,8 @@ export default function MCQPage() {
                   className="rounded-lg border border-gray-300 bg-surface px-3 py-1.5 text-sm outline-none focus:border-blue focus:ring-2 focus:ring-blue/20"
                 >
                   {[3, 5, 8, 10, 15].map((n) => (
-                    <option
-                      key={n}
-                      value={n}
-                      disabled={n > sampleQuestions.length}
-                    >
+                    <option key={n} value={n}>
                       {n}
-                      {n > sampleQuestions.length ? " (max)" : ""}
                     </option>
                   ))}
                 </select>
@@ -240,6 +192,12 @@ export default function MCQPage() {
               </span>
             </div>
           )}
+
+          {error && (
+            <div className="mt-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+              {error}
+            </div>
+          )}
         </div>
 
         <div>
@@ -259,11 +217,7 @@ export default function MCQPage() {
                     className="rounded-lg border border-gray-200 bg-surface px-2 py-1 text-xs outline-none focus:border-blue focus:ring-2 focus:ring-blue/20"
                   >
                     {[3, 5, 8, 10, 15].map((n) => (
-                      <option
-                        key={n}
-                        value={n}
-                        disabled={n > sampleQuestions.length}
-                      >
+                      <option key={n} value={n}>
                         {n}
                       </option>
                     ))}

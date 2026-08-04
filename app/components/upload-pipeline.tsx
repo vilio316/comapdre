@@ -262,7 +262,9 @@ export default function UploadPipeline({
                     </svg>
                   </div>
                   <p className="text-sm text-ink-muted">
-                    <span className="font-medium text-deep">Click to upload</span>{" "}
+                    <span className="font-medium text-deep">
+                      Click to upload
+                    </span>{" "}
                     or drag and drop
                   </p>
                   <p className="mt-1 text-xs text-ink-muted">
