@@ -84,6 +84,26 @@ const quickActions = [
       </svg>
     ),
   },
+  {
+    title: "Compile",
+    desc: "Merge documents into one file",
+    href: "/dashboard/compile",
+    icon: (
+      <svg
+        className="h-6 w-6"
+        fill="none"
+        viewBox="0 0 24 24"
+        stroke="currentColor"
+        strokeWidth={1.5}
+      >
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          d="M3.75 12h16.5m-16.5 0l5.25-5.25m-5.25 5.25l5.25 5.25m10.5-5.25L15.75 6.75m5.25 5.25L15.75 17.25"
+        />
+      </svg>
+    ),
+  },
 ];
 
 export default function DashboardPage() {
@@ -218,7 +238,7 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      <div className="mb-6 grid md:grid-cols-3 grid-cols-2 gap-3">
+      <div className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
         {quickActions.map((a) => (
           <Link
             key={a.href}
