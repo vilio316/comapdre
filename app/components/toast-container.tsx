@@ -23,7 +23,7 @@ export function ToastContainer() {
   if (notifications.length === 0) return null;
 
   return (
-    <div className="fixed right-4 top-4 z-50 flex w-full max-w-sm flex-col gap-2 pointer-events-none">
+    <div className="fixed right-4 left-4 sm:left-auto top-4 z-50 flex max-w-sm flex-col gap-2 pointer-events-none">
       {notifications.map((n) => (
         <div
           key={n.id}

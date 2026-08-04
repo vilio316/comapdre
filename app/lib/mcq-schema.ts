@@ -54,11 +54,11 @@ export async function generateMcqs(
   const request = await ai.interactions.create({
     model: "gemini-3.6-flash",
     system_instruction:
-      "You are an expert exam writer. Create multiple-choice questions that test understanding of the provided document. Each question must have exactly 4 plausible options and exactly one correct answer, identified by its 0-based index. Vary the position of the correct answer across questions. Do not invent facts that are not supported by the document.",
+      "You are an expert exam writer. Create multiple-choice questions that test understanding of the provided document(s). Use content drawn only from the supplied documents, covering material from each document where possible. Each question must have exactly 4 plausible options and exactly one correct answer, identified by its 0-based index. Vary the position of the correct answer across questions. Do not invent facts that are not supported by the documents.",
     input: [
       {
         type: "text",
-        text: `Generate exactly ${count} multiple-choice questions based on the document(s) attached.`,
+        text: `Generate exactly ${count} multiple-choice questions based on the content of all of the attached document(s).`,
       },
       ...input,
     ],

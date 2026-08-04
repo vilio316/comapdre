@@ -56,7 +56,7 @@ export default function Navbar() {
 
           <button
             onClick={() => setOpen(!open)}
-            className="flex items-center justify-center rounded-md p-1.5 text-blue-light hover:text-gold-light sm:hidden"
+            className="flex items-center justify-center rounded-md p-1.5 text-blue-light hover:text-gold-light lg:hidden"
             aria-label="Toggle menu"
           >
             {open ? (
@@ -71,7 +71,7 @@ export default function Navbar() {
           </button>
         </div>
 
-        <nav className="hidden items-center gap-1 sm:flex">
+        <nav className="hidden items-center gap-1 lg:flex">
           {data?.user ? (
             <>
               <Link
@@ -179,7 +179,7 @@ export default function Navbar() {
       </div>
 
       {open && (
-        <nav className="border-t border-deep-light px-4 pb-3 pt-2 sm:hidden">
+        <nav className="border-t border-deep-light px-4 pb-3 pt-2 lg:hidden">
           <div className="flex flex-col gap-1">
             {data?.user ? (
               <>

@@ -155,7 +155,7 @@ export default function DocumentsPage() {
                   {doc.size} &middot; {doc.uploaded}
                 </p>
               </div>
-              <div className="flex flex-wrap gap-1">
+              <div className="hidden flex-wrap gap-1 sm:flex">
                 {doc.tags.map((t) => (
                   <span
                     key={t}
