@@ -102,7 +102,7 @@ export default function MCQPage() {
             <input
               ref={inputRef}
               type="file"
-              accept=".pdf,.docx"
+              accept=".pdf,.docx,.ppt,.pptx"
               multiple
               className="hidden"
               onChange={(e) => e.target.files && handleFiles(e.target.files)}

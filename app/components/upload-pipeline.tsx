@@ -186,7 +186,7 @@ export default function UploadPipeline({
               <input
                 ref={inputRef}
                 type="file"
-                accept=".pdf,.docx,.jpg,.jpeg,.png"
+                accept=".pdf,.docx,.jpg,.jpeg,.png,.ppt,.pptx"
                 className="hidden"
                 onChange={(e) => {
                   const f = e.target.files?.[0];

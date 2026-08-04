@@ -104,7 +104,7 @@ export default function CompilePage() {
             <input
               ref={inputRef}
               type="file"
-              accept=".pdf,.docx,.jpg,.jpeg,.png"
+              accept=".pdf,.docx,.jpg,.jpeg,.png,.ppt,.pptx"
               multiple
               className="hidden"
               onChange={(e) => {
@@ -207,7 +207,8 @@ export default function CompilePage() {
             <div className="flex flex-col items-center gap-3">
               <div className="h-8 w-8 animate-spin rounded-full border-2 border-gray-300 border-t-gold" />
               <p className="text-sm text-ink-muted">
-                Compiling {files.length} document{files.length > 1 ? "s" : ""}...
+                Compiling {files.length} document{files.length > 1 ? "s" : ""}
+                ...
               </p>
             </div>
           ) : (
