@@ -7,6 +7,7 @@ import Link from "next/link";
 import UploadPipeline from "@/app/components/upload-pipeline";
 import type { UploadedFile } from "@/app/components/upload-pipeline";
 import ConfirmDialog from "@/app/components/confirm-dialog";
+import { UserAvatar } from "@/app/components/user-avatar";
 
 interface Doc {
   id: string;
@@ -160,19 +161,10 @@ export default function DashboardPage() {
   return (
     <div>
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-gray-200 bg-surface p-4 shadow-sm sm:p-5">
-        <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gold/20 text-sm font-bold text-gold sm:h-12 sm:w-12">
-            {user?.image ? (
-              <img
-                src={user.image}
-                className="h-full w-full rounded-full object-cover"
-                alt=""
-              />
-            ) : (
-              (user?.name?.charAt(0) ?? "?")
-            )}
-          </div>
-          <div>
+          <div className="flex items-center gap-3">
+            <UserAvatar size={40} className="sm:hidden" />
+            <UserAvatar size={48} className="hidden sm:block" />
+            <div>
             <p className="text-sm font-semibold text-deep sm:text-base">
               Welcome, {user?.name ?? "User"}
             </p>
