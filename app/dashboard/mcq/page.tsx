@@ -1,13 +1,9 @@
 "use client";
 
 import { useState, useRef, useCallback, useEffect } from "react";
+import Link from "next/link";
 import SelectedFileList from "@/app/components/selected-file-list";
-
-interface McqQuestion {
-  q: string;
-  options: string[];
-  answer: number;
-}
+import { useMcq } from "@/app/context/mcq-context";
 
 interface StoredDoc {
   id: string;
@@ -16,34 +12,26 @@ interface StoredDoc {
 }
 
 export default function MCQPage() {
+  const { jobs, submitMcq } = useMcq();
   const [files, setFiles] = useState<File[]>([]);
   const [storedDocs, setStoredDocs] = useState<StoredDoc[]>([]);
   const [selectedKeys, setSelectedKeys] = useState<string[]>([]);
   const [pickKey, setPickKey] = useState("");
   const [loadingDocs, setLoadingDocs] = useState(true);
-  const [questions, setQuestions] = useState<McqQuestion[]>([]);
-  const [selected, setSelected] = useState<Record<number, number>>({});
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [dragOver, setDragOver] = useState(false);
   const [questionCount, setQuestionCount] = useState(20);
-  const [page, setPage] = useState(0);
+  const [jobId, setJobId] = useState<string | null>(null);
+  const [resultKey, setResultKey] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const PAGE_SIZE = 10;
-  const totalPages = Math.max(1, Math.ceil(questions.length / PAGE_SIZE));
-  const pageQuestions = questions.slice(
-    page * PAGE_SIZE,
-    (page + 1) * PAGE_SIZE,
-  );
-
-  const score = Object.entries(selected).filter(
-    ([i, v]) => questions[Number(i)]?.answer === v,
-  ).length;
-
-  const answeredCount = Object.keys(selected).length;
-
   const hasInput = files.length > 0 || selectedKeys.length > 0;
+  const job = jobId ? jobs[jobId] : null;
+  const isProcessing =
+    loading || (job && (job.status === "pending" || job.status === "processing"));
+  const done = !!resultKey || job?.status === "done";
+  const doneKey = resultKey ?? job?.resultKey ?? null;
 
   useEffect(() => {
     fetch("/api/documents")
@@ -78,8 +66,6 @@ export default function MCQPage() {
     const docs = Array.from(newFiles);
     if (docs.length === 0) return;
     setFiles(docs);
-    setSelected({});
-    setQuestions([]);
     setError(null);
   };
 
@@ -87,43 +73,38 @@ export default function MCQPage() {
     if (!hasInput) return;
     setLoading(true);
     setError(null);
+    setJobId(null);
+    setResultKey(null);
     try {
-      const formData = new FormData();
-      formData.append("count", String(questionCount));
-      files.forEach((f) => formData.append("files", f));
-      selectedKeys.forEach((k) => formData.append("keys", k));
-
-      const res = await fetch("/api/mcq", { method: "POST", body: formData });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Generation failed");
-
-      setQuestions(data.questions ?? []);
-      setSelected({});
-      setPage(0);
+      const label =
+        files.length + selectedKeys.length === 1
+          ? "MCQ generation"
+          : `${files.length + selectedKeys.length} documents`;
+      const res = await submitMcq(files, selectedKeys, questionCount, label);
+      if (res.cached && res.resultKey) {
+        setResultKey(res.resultKey);
+      } else if (res.jobId) {
+        setJobId(res.jobId);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Generation failed");
-      setQuestions([]);
     } finally {
       setLoading(false);
     }
-  }, [files, selectedKeys, questionCount, hasInput]);
+  }, [files, selectedKeys, questionCount, hasInput, submitMcq]);
 
   const reset = useCallback(() => {
     setFiles([]);
     setSelectedKeys([]);
-    setQuestions([]);
-    setSelected({});
     setError(null);
     setDragOver(false);
-    setPage(0);
+    setJobId(null);
+    setResultKey(null);
   }, []);
 
   const clearFiles = useCallback(() => {
     setFiles([]);
-    setQuestions([]);
-    setSelected({});
     setError(null);
-    setPage(0);
   }, []);
 
   return (
@@ -295,7 +276,7 @@ export default function MCQPage() {
             )}
           </div>
 
-          {hasInput && !loading && questions.length === 0 && (
+          {hasInput && !isProcessing && !done && (
             <div className="mt-4 flex flex-col items-center gap-3">
               <div className="flex items-center gap-2">
                 <label className="text-sm text-ink-muted">Questions:</label>
@@ -320,12 +301,20 @@ export default function MCQPage() {
             </div>
           )}
 
-          {loading && (
+          {isProcessing && (
             <div className="mt-4 flex items-center justify-center gap-2 rounded-lg bg-muted px-4 py-3">
               <div className="h-4 w-4 animate-spin rounded-full border-2 border-gray-300 border-t-gold" />
               <span className="text-sm text-ink-muted">
-                Generating questions...
+                {job && job.status === "processing"
+                  ? "Generating questions..."
+                  : "Submitting..."}
               </span>
+            </div>
+          )}
+
+          {job?.status === "failed" && (
+            <div className="mt-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+              {job.error || "Generation failed"}
             </div>
           )}
 
@@ -334,133 +323,45 @@ export default function MCQPage() {
               {error}
             </div>
           )}
+
+          {done && doneKey && (
+            <div className="mt-4 flex flex-col items-center gap-3 rounded-xl border border-green-200 bg-green-50 px-4 py-5">
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-green-100">
+                <svg
+                  className="h-5 w-5 text-green-700"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth={2}
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="m4.5 12.75 6 6 9-13.5"
+                  />
+                </svg>
+              </div>
+              <p className="text-sm font-semibold text-deep">
+                Questions ready!
+              </p>
+              <Link
+                href={`/dashboard/mcq/result/${encodeURIComponent(doneKey)}`}
+                className="rounded-lg bg-gold px-5 py-2 text-sm font-medium text-deep transition-colors hover:bg-gold-light"
+              >
+                View Questions
+              </Link>
+              <button
+                onClick={reset}
+                className="text-xs text-ink-muted underline hover:text-deep"
+              >
+                Generate another set
+              </button>
+            </div>
+          )}
         </div>
 
         <div>
-          {questions.length > 0 && (
-            <div>
-              <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                <p className="text-sm text-ink-muted">
-                  Answered:{" "}
-                  <span className="font-semibold text-deep">
-                    {answeredCount}/{questions.length}
-                  </span>
-                  <span className="mx-2 text-gray-300">|</span>
-                  Score:{" "}
-                  <span className="font-semibold text-deep">
-                    {score}/{questions.length}
-                  </span>
-                </p>
-                <div className="flex items-center gap-3">
-                  <select
-                    value={questionCount}
-                    onChange={(e) => setQuestionCount(Number(e.target.value))}
-                    className="rounded-lg border border-gray-200 bg-surface px-2 py-1 text-xs outline-none focus:border-blue focus:ring-2 focus:ring-blue/20"
-                  >
-                    {[20, 40, 60, 80].map((n) => (
-                      <option key={n} value={n}>
-                        {n}
-                      </option>
-                    ))}
-                  </select>
-                  <button
-                    onClick={generate}
-                    disabled={loading}
-                    className="text-xs text-ink-muted underline hover:text-deep disabled:opacity-50"
-                  >
-                    Regenerate
-                  </button>
-                  <button
-                    onClick={reset}
-                    className="text-sm text-ink-muted underline hover:text-deep"
-                  >
-                    Clear
-                  </button>
-                </div>
-              </div>
-
-              <div className="space-y-4 sm:space-y-5">
-                {pageQuestions.map((q, i) => {
-                  const idx = page * PAGE_SIZE + i;
-                  return (
-                    <div
-                      key={idx}
-                      className="rounded-xl border border-gray-200 bg-surface p-4 sm:p-5"
-                    >
-                      <p className="mb-3 text-sm font-medium text-deep sm:text-base">
-                        {idx + 1}. {q.q}
-                      </p>
-                      <div className="space-y-2">
-                        {q.options.map((opt, j) => {
-                          const isSelected = selected[idx] === j;
-                          const isCorrect = q.answer === j;
-                          const showResult = selected[idx] !== undefined;
-                          let className =
-                            "flex w-full items-center rounded-lg border px-3 py-2.5 text-left text-sm transition-colors sm:px-4 ";
-                          if (showResult && isCorrect) {
-                            className +=
-                              "border-green-400 bg-green-50 text-green-800";
-                          } else if (showResult && isSelected && !isCorrect) {
-                            className +=
-                              "border-red-400 bg-red-50 text-red-800";
-                          } else if (isSelected) {
-                            className += "border-blue bg-blue/5 text-deep";
-                          } else {
-                            className +=
-                              "border-gray-200 text-ink-muted hover:border-gray-300";
-                          }
-                          return (
-                            <button
-                              key={j}
-                              disabled={showResult}
-                              onClick={() =>
-                                setSelected((prev) => ({
-                                  ...prev,
-                                  [idx]: j,
-                                }))
-                              }
-                              className={className}
-                            >
-                              <span className="mr-3 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border text-xs font-medium">
-                                {String.fromCharCode(65 + j)}
-                              </span>
-                              <span className="leading-snug">{opt}</span>
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-
-              {totalPages > 1 && (
-                <div className="mt-5 flex flex-wrap items-center justify-between gap-3">
-                  <button
-                    onClick={() => setPage((p) => Math.max(0, p - 1))}
-                    disabled={page === 0}
-                    className="rounded-lg border border-gray-300 bg-surface px-4 py-2 text-xs font-medium text-ink-muted transition-colors hover:border-gold/50 hover:text-deep disabled:cursor-not-allowed disabled:opacity-40"
-                  >
-                    &larr; Previous
-                  </button>
-                  <p className="text-xs text-ink-muted">
-                    Page {page + 1} of {totalPages}
-                  </p>
-                  <button
-                    onClick={() =>
-                      setPage((p) => Math.min(totalPages - 1, p + 1))
-                    }
-                    disabled={page >= totalPages - 1}
-                    className="rounded-lg border border-gray-300 bg-surface px-4 py-2 text-xs font-medium text-ink-muted transition-colors hover:border-gold/50 hover:text-deep disabled:cursor-not-allowed disabled:opacity-40"
-                  >
-                    Next &rarr;
-                  </button>
-                </div>
-              )}
-            </div>
-          )}
-
-          {!loading && questions.length === 0 && !hasInput && (
+          {!isProcessing && !done && !hasInput && (
             <div className="flex h-full min-h-50 items-center justify-center rounded-xl border border-dashed border-gray-200 p-8">
               <p className="text-center text-sm text-ink-muted">
                 Upload or select documents to generate MCQs

@@ -5,6 +5,7 @@ import Navbar from "@/app/components/navbar";
 import { ThemeProvider } from "@/app/components/theme-provider";
 import { NotificationProvider } from "@/app/context/notification-context";
 import { OcrProvider } from "@/app/context/ocr-context";
+import { McqProvider } from "@/app/context/mcq-context";
 import { ToastContainer } from "@/app/components/toast-container";
 import InstallPrompt from "@/app/components/install-prompt";
 import "./globals.css";
@@ -64,10 +65,12 @@ export default function RootLayout({
         <ThemeProvider>
           <NotificationProvider>
             <OcrProvider>
-              <Navbar />
-              <main className="flex-1 pb-16 sm:pb-0">{children}</main>
-              <InstallPrompt />
-              <ToastContainer />
+              <McqProvider>
+                <Navbar />
+                <main className="flex-1 pb-16 sm:pb-0">{children}</main>
+                <InstallPrompt />
+                <ToastContainer />
+              </McqProvider>
             </OcrProvider>
           </NotificationProvider>
         </ThemeProvider>
