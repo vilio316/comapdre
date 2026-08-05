@@ -32,7 +32,11 @@ export default function OCRPage() {
   }, [files, submitFileOcr]);
 
   const handleFiles = (newFiles: FileList) => {
-    const images = Array.from(newFiles).filter((f) => f.type.startsWith("image/"));
+    const images = Array.from(newFiles).filter((f) => {
+      if (f.type.startsWith("image/")) return true;
+      const ext = f.name.split(".").pop()?.toLowerCase() ?? "";
+      return ["jpg", "jpeg", "png", "webp", "gif", "bmp", "tiff", "tif", "heic", "heif"].includes(ext);
+    });
     if (images.length === 0) return;
     setFiles(images);
     setJobId(null);

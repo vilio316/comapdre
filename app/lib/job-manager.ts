@@ -1,4 +1,4 @@
-import { ocrQueue } from "./ocr-queue";
+import { ocrQueue, type OcrLocalFile } from "./ocr-queue";
 import { mcqQueue, type McqLocalFile } from "./mcq-queue";
 import { compileQueue, type CompileLocalFile, type CompileJobResult } from "./compile-queue";
 import { pdfQueue, type PdfJobResult } from "./pdf-queue";
@@ -8,8 +8,8 @@ import { getMcqResult, setMcqResult } from "./mcq-cache";
 export { getCachedOcrResult, setCachedOcrResult };
 export { getMcqResult, setMcqResult };
 
-export async function createLocalOcrJob(filePaths: string[]): Promise<{ id: string }> {
-  const job = await ocrQueue.add("ocr", { type: "local", filePaths });
+export async function createLocalOcrJob(files: OcrLocalFile[]): Promise<{ id: string }> {
+  const job = await ocrQueue.add("ocr", { type: "local", files });
   return { id: job.id! };
 }
 

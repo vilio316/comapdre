@@ -93,6 +93,8 @@ export function startMcqWorker() {
       const parts: McqInputPart[] = [];
 
       if (data.files && data.files.length > 0) {
+        const lastAttempt = job.attemptsMade >= (job.opts.attempts ?? 1) - 1;
+        let filesRead = false;
         try {
           const files = await Promise.all(
             data.files.map(async (f) => {
@@ -100,11 +102,14 @@ export function startMcqWorker() {
               return new File([buffer], f.name, { type: f.mimeType });
             }),
           );
+          filesRead = true;
           parts.push(...(await buildPartsFromFiles(files)));
         } finally {
-          await Promise.all(
-            data.files.map((f) => fs.unlink(f.path).catch(() => {})),
-          );
+          if (filesRead || lastAttempt) {
+            await Promise.all(
+              data.files.map((f) => fs.unlink(f.path).catch(() => {})),
+            );
+          }
         }
       }
 

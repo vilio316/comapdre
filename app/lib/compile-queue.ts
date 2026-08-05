@@ -88,11 +88,16 @@ export function startCompileWorker() {
         ...keys.map(extractFromOnlineKey),
       ];
 
+      const lastAttempt = job.attemptsMade >= (job.opts.attempts ?? 1) - 1;
+      let succeeded = false;
       let results: SourceResult[];
       try {
         results = await Promise.all(sources);
+        succeeded = true;
       } finally {
-        await Promise.all(local.map((f) => fs.unlink(f.path).catch(() => {})));
+        if (succeeded || lastAttempt) {
+          await Promise.all(local.map((f) => fs.unlink(f.path).catch(() => {})));
+        }
       }
 
       const text = results

@@ -1,10 +1,16 @@
 import { Queue, Worker, Job } from "bullmq";
 import redis from "./redis";
-import { processLocalImages, processOnlineImage, processOnlineDocument } from "@/app/api/ocr/ocrFunctions";
+import { processLocalImages, processLocalDocument, processOnlineImage, processOnlineDocument } from "@/app/api/ocr/ocrFunctions";
 import { setCachedOcrResult } from "@/app/lib/ocr-cache";
 import fs from "fs/promises";
 
 const OCR_QUEUE = "ocr";
+
+export interface OcrLocalFile {
+  path: string;
+  name: string;
+  mimeType: string;
+}
 
 export const ocrQueue = new Queue(OCR_QUEUE, {
   connection: redis,
@@ -24,9 +30,9 @@ export function startWorker() {
   worker = new Worker(
     OCR_QUEUE,
     async (job: Job) => {
-      const { type, filePaths, imageUrl, documentKey, mimeType } = job.data as {
+      const { type, files, imageUrl, documentKey, mimeType } = job.data as {
         type: "local" | "online";
-        filePaths?: string[];
+        files?: OcrLocalFile[];
         imageUrl?: string;
         documentKey?: string;
         mimeType?: string;
@@ -43,21 +49,35 @@ export function startWorker() {
         return result;
       }
 
-      if (type === "local" && filePaths && filePaths.length > 0) {
+      if (type === "local" && files && files.length > 0) {
+        const lastAttempt = job.attemptsMade >= (job.opts.attempts ?? 1) - 1;
+        let succeeded = false;
         try {
-          const files = await Promise.all(
-            filePaths.map(async (fp) => {
-              const buffer = await fs.readFile(fp);
-              return new File([buffer], "upload", { type: "image/jpeg" });
+          const fileObjects = await Promise.all(
+            files.map(async (f) => {
+              const buffer = await fs.readFile(f.path);
+              return new File([buffer], f.name, { type: f.mimeType });
             }),
           );
-          return await processLocalImages(files);
+          const images = fileObjects.filter((f) => f.type.startsWith("image/"));
+          const docs = fileObjects.filter((f) => !f.type.startsWith("image/"));
+          const results: string[] = [];
+          if (images.length > 0) {
+            results.push(await processLocalImages(images));
+          }
+          for (const doc of docs) {
+            results.push(await processLocalDocument(doc, doc.type));
+          }
+          succeeded = true;
+          return results.join("\n\n");
         } finally {
-          await Promise.all(filePaths.map((fp) => fs.unlink(fp).catch(() => {})));
+          if (succeeded || lastAttempt) {
+            await Promise.all(files.map((f) => fs.unlink(f.path).catch(() => {})));
+          }
         }
       }
 
-      throw new Error(`Invalid job: type=${type}, filePaths=${JSON.stringify(filePaths)}, imageUrl=${imageUrl}`);
+      throw new Error(`Invalid job: type=${type}, files=${JSON.stringify(files)}, imageUrl=${imageUrl}`);
     },
     {
       connection: redis,

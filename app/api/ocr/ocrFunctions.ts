@@ -3,6 +3,12 @@ import { sanitizeText } from "@/app/lib/text-sanitize";
 
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_KEY });
 
+const MATH_PROMPT_SUFFIX =
+  " Transcribe mathematical formulas, equations, and scientific notation exactly as they appear. " +
+  "Use Unicode symbols (π, ∑, ∫, √, ≤, ≥, ≠, ×, ÷, ±, ∞, θ, α, β, Δ, Ω, etc.) rather than ASCII approximations. " +
+  "Render inline math as $...$ and standalone equations as $$...$$, preserving superscripts, subscripts, " +
+  "fractions, and operators. Do not translate symbols into words (e.g. keep 'x²' not 'x squared').";
+
 async function fileToBase64(file: File) {
   const buffer = await file.arrayBuffer();
   return Buffer.from(buffer).toString("base64");
@@ -18,8 +24,8 @@ export async function processLocalImages(files: File[]) {
 
   const prompt =
     images.length === 1
-      ? "Extract all text from this image."
-      : "Summarise the contents of all these images into a single response.";
+      ? "Extract all text from this image verbatim." + MATH_PROMPT_SUFFIX
+      : "Summarise the contents of all these images into a single response, preserving mathematical notation." + MATH_PROMPT_SUFFIX;
 
   const request = await ai.interactions.create({
     model: "gemini-3.6-flash",
@@ -43,7 +49,10 @@ export async function processLocalDocument(file: File, mimeType?: string) {
   const request = await ai.interactions.create({
     model: "gemini-3.6-flash",
     input: [
-      { type: "text", text: "Extract all text from this document." },
+      {
+        type: "text",
+        text: "Extract all text from this document verbatim." + MATH_PROMPT_SUFFIX,
+      },
       {
         type: "document",
         data: base64,
@@ -59,7 +68,10 @@ export async function processOnlineImage(url: string) {
   const processOnlineInteraction = await ai.interactions.create({
     model: "gemini-3.6-flash",
     input: [
-      { type: "text", text: "Extract all text from this image." },
+      {
+        type: "text",
+        text: "Extract all text from this image verbatim." + MATH_PROMPT_SUFFIX,
+      },
       {
         type: "image",
         uri: url,
@@ -77,7 +89,10 @@ export async function processOnlineDocument(url: string, mimeType: string) {
   const request = await ai.interactions.create({
     model: "gemini-3.6-flash",
     input: [
-      { type: "text", text: "Extract all text from this document." },
+      {
+        type: "text",
+        text: "Extract all text from this document verbatim." + MATH_PROMPT_SUFFIX,
+      },
       {
         type: "document",
         data: base64,
