@@ -3,6 +3,7 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import Link from "next/link";
 import SelectedFileList from "@/app/components/selected-file-list";
+import McqTabs from "@/app/components/mcq-tabs";
 import { useMcq } from "@/app/context/mcq-context";
 
 interface StoredDoc {
@@ -115,6 +116,8 @@ export default function MCQPage() {
       <p className="mt-1 text-sm text-ink-muted sm:mt-2 sm:text-base">
         Upload documents to generate practice multiple-choice questions.
       </p>
+
+      <McqTabs />
 
       <div className="mt-6 grid gap-6">
         <div>

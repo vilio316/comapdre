@@ -1,5 +1,7 @@
 import { ocrQueue } from "./ocr-queue";
 import { mcqQueue, type McqLocalFile } from "./mcq-queue";
+import { compileQueue, type CompileLocalFile, type CompileJobResult } from "./compile-queue";
+import { pdfQueue, type PdfJobResult } from "./pdf-queue";
 import { getCachedOcrResult, setCachedOcrResult } from "./ocr-cache";
 import { getMcqResult, setMcqResult } from "./mcq-cache";
 
@@ -70,6 +72,58 @@ export async function getMcqJobStatus(jobId: string) {
       : "processing"
     ) as "done" | "failed" | "processing",
     resultKey: job.data.resultKey as string | undefined,
+    error: job.failedReason,
+    createdAt: job.timestamp,
+  };
+}
+
+export async function createCompileJob(
+  files: CompileLocalFile[],
+  documentKeys: string[] = [],
+): Promise<{ id: string }> {
+  const job = await compileQueue.add("compile", { files, documentKeys });
+  return { id: job.id! };
+}
+
+export async function getCompileJobStatus(jobId: string) {
+  const job = await compileQueue.getJob(jobId);
+  if (!job) return null;
+
+  const state = await job.getState();
+
+  return {
+    status: (
+      state === "completed" ? "done"
+      : state === "failed" ? "failed"
+      : "processing"
+    ) as "done" | "failed" | "processing",
+    result: job.returnvalue as CompileJobResult | undefined,
+    error: job.failedReason,
+    createdAt: job.timestamp,
+  };
+}
+
+export async function createPdfJob(
+  text: string,
+  fileName: string,
+): Promise<{ id: string }> {
+  const job = await pdfQueue.add("compile-pdf", { text, fileName });
+  return { id: job.id! };
+}
+
+export async function getPdfJobStatus(jobId: string) {
+  const job = await pdfQueue.getJob(jobId);
+  if (!job) return null;
+
+  const state = await job.getState();
+
+  return {
+    status: (
+      state === "completed" ? "done"
+      : state === "failed" ? "failed"
+      : "processing"
+    ) as "done" | "failed" | "processing",
+    result: job.returnvalue as PdfJobResult | undefined,
     error: job.failedReason,
     createdAt: job.timestamp,
   };

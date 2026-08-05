@@ -12,7 +12,12 @@ function extType(name: string): string {
   if (ext === "docx") return "DOCX";
   if (ext === "jpg" || ext === "jpeg") return "JPEG";
   if (ext === "png") return "PNG";
+  if (ext === "md" || ext === "txt") return ext.toUpperCase();
   return (ext ?? "FILE").toUpperCase();
+}
+
+function basename(key: string): string {
+  return key.split("/").pop() ?? key;
 }
 
 export async function GET() {
@@ -21,7 +26,7 @@ export async function GET() {
 
     const docs = objects.map((obj) => ({
       id: obj.name,
-      name: obj.name,
+      name: basename(obj.name),
       type: extType(obj.name),
       size: formatBytes(obj.size),
       uploaded: obj.uploaded instanceof Date

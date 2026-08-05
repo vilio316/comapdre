@@ -12,9 +12,23 @@ export async function GET(
     const url = await getObjectSignedUrl(decodedKey);
 
     const ext = decodedKey.split(".").pop()?.toLowerCase() ?? "";
-    const type = ext === "pdf" ? "pdf" : ext === "docx" ? "docx" : ext === "jpg" || ext === "jpeg" ? "jpeg" : ext === "png" ? "png" : "other";
+    const isText = ext === "md" || ext === "txt";
+    const type = ext === "pdf" ? "pdf"
+      : ext === "docx" ? "docx"
+      : ext === "jpg" || ext === "jpeg" ? "jpeg"
+      : ext === "png" ? "png"
+      : isText ? "md"
+      : "other";
 
-    return NextResponse.json({ url, name: decodedKey, type });
+    const name = decodedKey.split("/").pop() ?? decodedKey;
+
+    let text: string | undefined;
+    if (isText) {
+      const res = await fetch(url);
+      if (res.ok) text = await res.text();
+    }
+
+    return NextResponse.json({ url, name, type, text });
   } catch (error) {
     console.error("Failed to get document URL:", error);
     return NextResponse.json(

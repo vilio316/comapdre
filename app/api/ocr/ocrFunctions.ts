@@ -36,6 +36,25 @@ export async function processLocalImages(files: File[]) {
   return sanitizeText(request.output_text);
 }
 
+export async function processLocalDocument(file: File, mimeType?: string) {
+  const buffer = await file.arrayBuffer();
+  const base64 = Buffer.from(buffer).toString("base64");
+
+  const request = await ai.interactions.create({
+    model: "gemini-3.6-flash",
+    input: [
+      { type: "text", text: "Extract all text from this document." },
+      {
+        type: "document",
+        data: base64,
+        mime_type: mimeType || file.type || "application/pdf",
+      },
+    ],
+  });
+
+  return sanitizeText(request.output_text);
+}
+
 export async function processOnlineImage(url: string) {
   const processOnlineInteraction = await ai.interactions.create({
     model: "gemini-3.6-flash",

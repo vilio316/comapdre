@@ -5,5 +5,11 @@ export async function register() {
 
     const { startMcqWorker } = await import("./app/lib/mcq-queue");
     startMcqWorker();
+
+    const { startCompileWorker } = await import("./app/lib/compile-queue");
+    startCompileWorker();
+
+    const { startPdfWorker } = await import("./app/lib/pdf-queue");
+    startPdfWorker();
   }
 }

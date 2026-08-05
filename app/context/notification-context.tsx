@@ -25,6 +25,8 @@ interface NotificationContextValue {
   success: (title: string, message?: string) => string;
   error: (title: string, message?: string) => string;
   info: (title: string, message?: string) => string;
+  requestSystemNotifications: () => Promise<NotificationPermission>;
+  notifySystem: (title: string, body?: string, url?: string) => void;
 }
 
 const NotificationContext = createContext<NotificationContextValue | null>(null);
@@ -73,9 +75,30 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
     [addNotification],
   );
 
+  const requestSystemNotifications = useCallback(async () => {
+    if (typeof window === "undefined" || !("Notification" in window)) {
+      return "denied" as NotificationPermission;
+    }
+    return Notification.requestPermission();
+  }, []);
+
+  const notifySystem = useCallback((title: string, body?: string, url?: string) => {
+    if (typeof window === "undefined" || !("Notification" in window)) return;
+    if (Notification.permission !== "granted") return;
+
+    const notification = new Notification(title, { body });
+    if (url) {
+      notification.onclick = () => {
+        window.focus();
+        window.location.href = url;
+        notification.close();
+      };
+    }
+  }, []);
+
   return (
     <NotificationContext.Provider
-      value={{ notifications, addNotification, removeNotification, success, error, info }}
+      value={{ notifications, addNotification, removeNotification, success, error, info, requestSystemNotifications, notifySystem }}
     >
       {children}
     </NotificationContext.Provider>

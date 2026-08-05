@@ -2,6 +2,7 @@ import { Queue, Worker, Job } from "bullmq";
 import redis from "./redis";
 import { generateMcqs, type McqInputPart } from "@/app/lib/mcq-schema";
 import { setMcqResult } from "@/app/lib/mcq-cache";
+import { recordMcqHistory } from "@/app/lib/mcq-history";
 import { resolveMime, extToMime, MAX_MCQS } from "@/app/lib/mcq-utils";
 import { getObjectSignedUrl } from "@/lib/cloudflareHelper";
 import fs from "fs/promises";
@@ -122,6 +123,19 @@ export function startMcqWorker() {
       const json = JSON.stringify(mcqSet);
       if (data.resultKey) {
         await setMcqResult(data.resultKey, json);
+      }
+
+      if (
+        data.resultKey &&
+        data.documentKeys &&
+        data.documentKeys.length > 0 &&
+        !(data.files && data.files.length > 0)
+      ) {
+        await recordMcqHistory({
+          resultKey: data.resultKey,
+          keys: data.documentKeys,
+          createdAt: Date.now(),
+        });
       }
 
       return { resultKey: data.resultKey, count, result: mcqSet };

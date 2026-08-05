@@ -9,6 +9,7 @@ import {
   getMcqResult,
 } from "@/app/lib/job-manager";
 import { mcqQueue } from "@/app/lib/mcq-queue";
+import { recordMcqHistory } from "@/app/lib/mcq-history";
 import { resolveMime, MAX_FILES, MAX_TOTAL_BYTES, MAX_MCQS } from "@/app/lib/mcq-utils";
 
 function buildMcqCacheKey(count: number, fileHashes: string[], keys: string[]): string {
@@ -64,6 +65,13 @@ export async function POST(request: NextRequest) {
 
     const cached = await getMcqResult(resultKey);
     if (cached) {
+      if (files.length === 0 && keys.length > 0) {
+        await recordMcqHistory({
+          resultKey,
+          keys,
+          createdAt: Date.now(),
+        });
+      }
       return NextResponse.json({ cached: true, resultKey });
     }
 

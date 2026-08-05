@@ -15,6 +15,7 @@ export default function DocumentViewerPage() {
     url: string;
     name: string;
     type: string;
+    text?: string;
   } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -205,7 +206,7 @@ export default function DocumentViewerPage() {
             </div>
           )}
         </div>
-      ) : data.type === "docx" ? (
+) : data.type === "docx" ? (
         <div className="flex flex-col gap-4">
           <div className="rounded-xl border border-gray-200 bg-surface p-10 shadow-sm">
             <div className="mx-auto max-w-md text-center">
@@ -263,6 +264,17 @@ export default function DocumentViewerPage() {
               </p>
             </div>
           )}
+        </div>
+      ) : data.type === "md" ? (
+        <div className="flex flex-col gap-4">
+          <div className="rounded-xl border border-gray-200 bg-surface p-5 shadow-sm">
+            <h2 className="mb-3 text-sm font-semibold text-deep">
+              {data.name}
+            </h2>
+            <pre className="whitespace-pre-wrap text-sm text-ink leading-relaxed font-mono">
+              {data.text ?? "No text content."}
+            </pre>
+          </div>
         </div>
       ) : (
         <div className="rounded-xl border border-gray-200 bg-surface p-10 shadow-sm">
