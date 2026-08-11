@@ -75,6 +75,7 @@ export async function generateMcqs(
 
   if (
     !Array.isArray(parsed.questions) ||
+    parsed.questions.length === 0 ||
     parsed.questions.some(
       (q) =>
         typeof q.q !== "string" ||
