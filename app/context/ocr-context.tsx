@@ -29,11 +29,52 @@ export function useOcr() {
   return ctx;
 }
 
+const ACTIVE_JOBS_KEY = "compadre:ocr-active-jobs";
+
+interface StoredOcrJob {
+  jobId: string;
+  label?: string;
+  docId?: string;
+}
+
+function loadStoredJobs(): StoredOcrJob[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = window.localStorage.getItem(ACTIVE_JOBS_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveStoredJobs(jobs: StoredOcrJob[]) {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.setItem(ACTIVE_JOBS_KEY, JSON.stringify(jobs));
+  } catch {
+    // storage unavailable
+  }
+}
+
+function forgetStoredJob(jobId: string) {
+  saveStoredJobs(loadStoredJobs().filter((j) => j.jobId !== jobId));
+}
+
 export function OcrProvider({ children }: { children: React.ReactNode }) {
   const { success, error, addNotification, removeNotification } = useNotifications();
-  const [jobs, setJobs] = useState<Record<string, OcrJobState>>({});
   const notifIds = useRef<Map<string, string>>(new Map());
   const docIds = useRef<Map<string, string>>(new Map());
+  const [jobs, setJobs] = useState<Record<string, OcrJobState>>(() => {
+    const stored = loadStoredJobs();
+    const initial: Record<string, OcrJobState> = {};
+    for (const s of stored) {
+      initial[s.jobId] = { status: "pending", label: s.label };
+      if (s.docId) docIds.current.set(s.jobId, s.docId);
+    }
+    return initial;
+  });
   const pollTimer = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const updateJob = useCallback((jobId: string, state: OcrJobState) => {
@@ -64,6 +105,11 @@ export function OcrProvider({ children }: { children: React.ReactNode }) {
           (async () => {
             try {
               const res = await fetch(`/api/ocr/status/${jobId}`);
+              if (res.status === 404) {
+                forgetStoredJob(jobId);
+                removeJob(jobId);
+                return;
+              }
               if (!res.ok) return;
               const data = await res.json();
 
@@ -79,11 +125,13 @@ export function OcrProvider({ children }: { children: React.ReactNode }) {
                   action: docId ? { label: "View Document", href: `/dashboard/documents/${encodeURIComponent(docId)}` } : undefined,
                 });
                 if (docId) docIds.current.delete(jobId);
+                forgetStoredJob(jobId);
               } else if (data.status === "failed") {
                 next[jobId] = { status: "failed", error: data.error, label: job.label };
                 const nid = notifIds.current.get(jobId);
                 if (nid) { removeNotification(nid); notifIds.current.delete(jobId); }
                 error("OCR Failed", data.error || "Unknown error");
+                forgetStoredJob(jobId);
               } else {
                 next[jobId] = { ...job, status: data.status as "processing" };
               }
@@ -110,7 +158,7 @@ export function OcrProvider({ children }: { children: React.ReactNode }) {
 
       return next;
     });
-  }, [success, error, addNotification, removeNotification]);
+  }, [success, error, addNotification, removeNotification, removeJob]);
 
   useEffect(() => {
     const activeCount = Object.values(jobs).filter(
@@ -147,6 +195,10 @@ export function OcrProvider({ children }: { children: React.ReactNode }) {
       const jobId = data.jobId;
       const fileLabel = files.length === 1 ? (label || "Image OCR") : `${files.length} images`;
       updateJob(jobId, { status: "pending", label: fileLabel });
+      saveStoredJobs([
+        ...loadStoredJobs().filter((j) => j.jobId !== jobId),
+        { jobId, label: fileLabel },
+      ]);
 
       const nid = addNotification({
         type: "loading",
@@ -182,6 +234,10 @@ export function OcrProvider({ children }: { children: React.ReactNode }) {
       const jobId = data.jobId;
       docIds.current.set(jobId, documentId);
       updateJob(jobId, { status: "pending", label: label || "Document OCR" });
+      saveStoredJobs([
+        ...loadStoredJobs().filter((j) => j.jobId !== jobId),
+        { jobId, label: label || "Document OCR", docId: documentId },
+      ]);
 
       const nid = addNotification({
         type: "loading",

@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useTheme } from "@/app/components/theme-provider";
+import { NotificationCenter } from "@/app/components/notification-center";
 
 export default function Navbar() {
   const pathname = usePathname();
@@ -38,6 +39,7 @@ export default function Navbar() {
         </Link>
 
         <div className="flex items-center gap-1">
+          {data?.user && <NotificationCenter />}
           <button
             onClick={toggle}
             className="rounded-md p-1.5 text-blue-light transition-colors hover:bg-deep-light hover:text-gold-light"

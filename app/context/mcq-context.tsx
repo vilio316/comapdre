@@ -34,6 +34,39 @@ export function useMcq() {
   return ctx;
 }
 
+const ACTIVE_JOBS_KEY = "compadre:mcq-active-jobs";
+
+interface StoredMcqJob {
+  jobId: string;
+  label?: string;
+  resultKey?: string;
+}
+
+function loadStoredJobs(): StoredMcqJob[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = window.localStorage.getItem(ACTIVE_JOBS_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveStoredJobs(jobs: StoredMcqJob[]) {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.setItem(ACTIVE_JOBS_KEY, JSON.stringify(jobs));
+  } catch {
+    // storage unavailable
+  }
+}
+
+function forgetStoredJob(jobId: string) {
+  saveStoredJobs(loadStoredJobs().filter((j) => j.jobId !== jobId));
+}
+
 export function McqProvider({ children }: { children: React.ReactNode }) {
   const { addNotification, removeNotification } = useNotifications();
   const [jobs, setJobs] = useState<Record<string, McqJobState>>({});
@@ -42,6 +75,14 @@ export function McqProvider({ children }: { children: React.ReactNode }) {
 
   const updateJob = useCallback((jobId: string, state: McqJobState) => {
     setJobs((prev) => ({ ...prev, [jobId]: state }));
+  }, []);
+
+  const removeJob = useCallback((jobId: string) => {
+    setJobs((prev) => {
+      const next = { ...prev };
+      delete next[jobId];
+      return next;
+    });
   }, []);
 
   const pollOnce = useCallback(async () => {
@@ -60,6 +101,11 @@ export function McqProvider({ children }: { children: React.ReactNode }) {
           (async () => {
             try {
               const res = await fetch(`/api/mcq/status/${jobId}`);
+              if (res.status === 404) {
+                forgetStoredJob(jobId);
+                removeJob(jobId);
+                return;
+              }
               if (!res.ok) return;
               const data = await res.json();
 
@@ -86,6 +132,7 @@ export function McqProvider({ children }: { children: React.ReactNode }) {
                     },
                   });
                 }
+                forgetStoredJob(jobId);
               } else if (data.status === "failed") {
                 next[jobId] = {
                   status: "failed",
@@ -102,6 +149,7 @@ export function McqProvider({ children }: { children: React.ReactNode }) {
                   title: "MCQ Generation Failed",
                   message: data.error || "Unknown error",
                 });
+                forgetStoredJob(jobId);
               } else {
                 next[jobId] = { ...job, status: data.status as "processing" };
               }
@@ -128,7 +176,7 @@ export function McqProvider({ children }: { children: React.ReactNode }) {
 
       return next;
     });
-  }, [addNotification, removeNotification]);
+  }, [addNotification, removeNotification, removeJob]);
 
   useEffect(() => {
     const activeCount = Object.values(jobs).filter(
@@ -150,6 +198,20 @@ export function McqProvider({ children }: { children: React.ReactNode }) {
       }
     };
   }, [jobs, pollOnce]);
+
+  useEffect(() => {
+    const stored = loadStoredJobs();
+    if (stored.length === 0) return;
+    setJobs((prev) => {
+      const next = { ...prev };
+      for (const s of stored) {
+        if (!next[s.jobId]) {
+          next[s.jobId] = { status: "pending", label: s.label, resultKey: s.resultKey };
+        }
+      }
+      return next;
+    });
+  }, []);
 
   const submitMcq = useCallback(
     async (
@@ -183,6 +245,10 @@ export function McqProvider({ children }: { children: React.ReactNode }) {
       const jobId = data.jobId;
       const fileLabel = label || (files.length === 1 ? "MCQ generation" : `${files.length} documents`);
       updateJob(jobId, { status: "pending", resultKey: data.resultKey, label: fileLabel });
+      saveStoredJobs([
+        ...loadStoredJobs().filter((j) => j.jobId !== jobId),
+        { jobId, label: fileLabel, resultKey: data.resultKey },
+      ]);
 
       const nid = addNotification({
         type: "loading",

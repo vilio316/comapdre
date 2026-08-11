@@ -57,6 +57,7 @@ function renderOcr() {
 const fetchMock = vi.fn();
 
 beforeEach(() => {
+  window.localStorage.clear();
   vi.stubGlobal("fetch", fetchMock);
   vi.useFakeTimers();
 });
@@ -157,5 +158,49 @@ describe("OcrProvider", () => {
 
     expect(screen.getByTestId("job-j1").textContent).toContain("failed");
     expect(screen.getByTestId("job-j1").textContent).toContain("quota");
+  });
+
+  it("restores a persisted job on mount and notifies on completion", async () => {
+    window.localStorage.setItem(
+      "compadre:ocr-active-jobs",
+      JSON.stringify([{ jobId: "j-stale", label: "Old scan" }]),
+    );
+    fetchMock.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ status: "done", result: "restored text" }),
+    });
+
+    renderOcr();
+    expect(screen.getByTestId("jobcount").textContent).toBe("1");
+    expect(screen.getByTestId("job-j-stale").textContent).toContain("pending");
+
+    await act(async () => {
+      vi.advanceTimersByTime(2000);
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    expect(screen.getByTestId("job-j-stale").textContent).toContain("done");
+    expect(screen.getByTestId("job-j-stale").textContent).toContain("restored text");
+    expect(screen.getByTestId("notifcount").textContent).toBe("1");
+    expect(JSON.parse(window.localStorage.getItem("compadre:ocr-active-jobs") ?? "[]")).toEqual([]);
+  });
+
+  it("drops a persisted job when the server returns 404", async () => {
+    window.localStorage.setItem(
+      "compadre:ocr-active-jobs",
+      JSON.stringify([{ jobId: "j-gone", label: "Expired scan" }]),
+    );
+    fetchMock.mockResolvedValueOnce({ status: 404, ok: false, json: async () => ({ error: "not found" }) });
+
+    renderOcr();
+    await act(async () => {
+      vi.advanceTimersByTime(2000);
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    expect(screen.getByTestId("jobcount").textContent).toBe("0");
+    expect(JSON.parse(window.localStorage.getItem("compadre:ocr-active-jobs") ?? "[]")).toEqual([]);
   });
 });

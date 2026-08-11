@@ -30,7 +30,8 @@ export default function MCQPage() {
   const hasInput = files.length > 0 || selectedKeys.length > 0;
   const job = jobId ? jobs[jobId] : null;
   const isProcessing =
-    loading || (job && (job.status === "pending" || job.status === "processing"));
+    loading ||
+    (job && (job.status === "pending" || job.status === "processing"));
   const done = !!resultKey || job?.status === "done";
   const doneKey = resultKey ?? job?.resultKey ?? null;
 
@@ -152,7 +153,7 @@ export default function MCQPage() {
                 <button
                   onClick={addKey}
                   disabled={!pickKey}
-                  className="shrink-0 rounded-lg border border-gray-300 bg-surface px-4 py-2 text-sm font-medium text-ink-muted transition-colors hover:border-gold/50 hover:text-deep disabled:cursor-not-allowed disabled:opacity-40"
+                  className="shrink-0 rounded-lg border border-gray-300 bg-gold px-4 py-2 text-sm font-medium text-ink-muted transition-colors hover:border-gold/50 hover:text-deep disabled:cursor-not-allowed disabled:opacity-40"
                 >
                   Add
                 </button>
