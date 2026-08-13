@@ -28,7 +28,10 @@ export default function DocumentsPage() {
 
   const loadDocs = useCallback(() => {
     fetch("/api/documents")
-      .then((r) => r.json())
+      .then((r) => {
+        if (!r.ok) throw new Error(`Request failed (${r.status})`);
+        return r.json();
+      })
       .then((data) => {
         if (data.docs) setDocs(data.docs);
       })

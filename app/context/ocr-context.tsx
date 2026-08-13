@@ -189,8 +189,17 @@ export function OcrProvider({ children }: { children: React.ReactNode }) {
       }
 
       const res = await fetch("/api/ocr", { method: "POST", body: formData });
+      if (!res.ok) {
+        let message = "Submission failed";
+        try {
+          const data = await res.json();
+          if (data && typeof data.error === "string") message = data.error;
+        } catch {
+          // non-JSON error body
+        }
+        throw new Error(message);
+      }
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Submission failed");
 
       const jobId = data.jobId;
       const fileLabel = files.length === 1 ? (label || "Image OCR") : `${files.length} images`;
@@ -218,8 +227,17 @@ export function OcrProvider({ children }: { children: React.ReactNode }) {
       const res = await fetch(`/api/documents/${encodeURIComponent(documentId)}/ocr`, {
         method: "POST",
       });
+      if (!res.ok) {
+        let message = "Submission failed";
+        try {
+          const data = await res.json();
+          if (data && typeof data.error === "string") message = data.error;
+        } catch {
+          // non-JSON error body
+        }
+        throw new Error(message);
+      }
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Submission failed");
 
       if (data.cached) {
         addNotification({

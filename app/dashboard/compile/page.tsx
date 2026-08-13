@@ -69,7 +69,10 @@ export default function CompilePage() {
 
   const loadDocs = useCallback(() => {
     fetch("/api/documents")
-      .then((r) => r.json())
+      .then((r) => {
+        if (!r.ok) throw new Error(`Request failed (${r.status})`);
+        return r.json();
+      })
       .then((data) => {
         if (data.docs) {
           setStoredDocs(
@@ -109,6 +112,20 @@ export default function CompilePage() {
     const interval = setInterval(async () => {
       try {
         const res = await fetch(`/api/compile/status/${compileJobId}`);
+        if (!res.ok) {
+          clearInterval(interval);
+          setCompileStatus("failed");
+          setCompiling(false);
+          let message = "Failed to check compilation status";
+          try {
+            const errData = await res.json();
+            if (errData && typeof errData.error === "string") message = errData.error;
+          } catch {
+            // non-JSON error body
+          }
+          setError(message);
+          return;
+        }
         const data = await res.json();
         if (data.status === "done" && data.result) {
           clearInterval(interval);
@@ -124,7 +141,7 @@ export default function CompilePage() {
           setError(data.error ?? "Compilation failed");
         }
       } catch {
-        // keep polling
+        // network error, keep polling
       }
     }, 2000);
     return () => clearInterval(interval);
@@ -135,6 +152,19 @@ export default function CompilePage() {
     const interval = setInterval(async () => {
       try {
         const res = await fetch(`/api/compile/pdf/status/${pdfJobId}`);
+        if (!res.ok) {
+          clearInterval(interval);
+          setPdfStatus("failed");
+          let message = "Failed to check PDF status";
+          try {
+            const errData = await res.json();
+            if (errData && typeof errData.error === "string") message = errData.error;
+          } catch {
+            // non-JSON error body
+          }
+          setError(message);
+          return;
+        }
         const data = await res.json();
         if (data.status === "done" && data.result?.doc) {
           clearInterval(interval);
@@ -160,7 +190,7 @@ export default function CompilePage() {
           setError(data.error ?? "PDF generation failed");
         }
       } catch {
-        // keep polling
+        // network error, keep polling
       }
     }, 2000);
     return () => clearInterval(interval);
@@ -231,8 +261,17 @@ export default function CompilePage() {
         method: "POST",
         body: formData,
       });
+      if (!res.ok) {
+        let message = "Compilation failed";
+        try {
+          const data = await res.json();
+          if (data && typeof data.error === "string") message = data.error;
+        } catch {
+          // non-JSON error body
+        }
+        throw new Error(message);
+      }
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Compilation failed");
       if (!data.jobId) throw new Error("No job ID returned");
       setCompileJobId(data.jobId);
     } catch (err) {
@@ -253,8 +292,17 @@ export default function CompilePage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ text: output, fileName }),
       });
+      if (!res.ok) {
+        let message = "PDF generation failed";
+        try {
+          const data = await res.json();
+          if (data && typeof data.error === "string") message = data.error;
+        } catch {
+          // non-JSON error body
+        }
+        throw new Error(message);
+      }
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "PDF generation failed");
       if (!data.jobId) throw new Error("No job ID returned");
       setPdfJobId(data.jobId);
     } catch (err) {

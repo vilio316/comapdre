@@ -32,7 +32,10 @@ export default function DocumentViewerPage() {
   useEffect(() => {
     if (!id) return;
     fetch(`/api/documents/${encodeURIComponent(id)}`)
-      .then((r) => r.json())
+      .then((r) => {
+        if (!r.ok) throw new Error(`Request failed (${r.status})`);
+        return r.json();
+      })
       .then((res) => {
         if (res.error) throw new Error(res.error);
         setData(res);

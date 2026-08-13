@@ -226,8 +226,17 @@ export function McqProvider({ children }: { children: React.ReactNode }) {
       keys.forEach((k) => formData.append("keys", k));
 
       const res = await fetch("/api/mcq", { method: "POST", body: formData });
+      if (!res.ok) {
+        let message = "Submission failed";
+        try {
+          const data = await res.json();
+          if (data && typeof data.error === "string") message = data.error;
+        } catch {
+          // non-JSON error body
+        }
+        throw new Error(message);
+      }
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Submission failed");
 
       if (data.cached) {
         addNotification({

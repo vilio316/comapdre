@@ -26,7 +26,10 @@ export function UserAvatar({
     if (image.startsWith("avatars/")) {
       setSrc(null);
       fetch("/api/avatar")
-        .then((r) => r.json())
+        .then((r) => {
+          if (!r.ok) throw new Error(`Request failed (${r.status})`);
+          return r.json();
+        })
         .then((d) => {
           if (!cancelled && d.url) setSrc(d.url);
         })

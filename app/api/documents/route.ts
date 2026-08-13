@@ -18,12 +18,12 @@ function parseTags(raw: string | null): string[] {
 }
 
 export async function GET(request: Request) {
-  const ctx = await getOrgContext(request.headers);
-  if (!ctx) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
   try {
+    const ctx = await getOrgContext(request.headers);
+    if (!ctx) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const documents = await prisma.document.findMany({
       where: { organizationId: ctx.organizationId },
       orderBy: { createdAt: "desc" },

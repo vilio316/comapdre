@@ -39,7 +39,10 @@ export default function MCQPage() {
 
   useEffect(() => {
     fetch("/api/documents")
-      .then((r) => r.json())
+      .then((r) => {
+        if (!r.ok) throw new Error(`Request failed (${r.status})`);
+        return r.json();
+      })
       .then((data) => {
         if (data.docs) {
           setStoredDocs(

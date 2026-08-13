@@ -34,7 +34,10 @@ export default function McqHistoryPage() {
   useEffect(() => {
     let active = true;
     fetch("/api/mcq/history")
-      .then((r) => r.json())
+      .then((r) => {
+        if (!r.ok) throw new Error(`Request failed (${r.status})`);
+        return r.json();
+      })
       .then((res) => {
         if (!active) return;
         if (res.error) throw new Error(res.error);

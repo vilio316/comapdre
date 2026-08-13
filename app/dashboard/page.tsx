@@ -69,13 +69,24 @@ export default function DashboardPage() {
   const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
-    fetch("/api/documents")
-      .then((r) => r.json())
-      .then((data) => {
-        if (data.docs) setDocs(data.docs);
-      })
-      .catch(console.error)
-      .finally(() => setLoading(false));
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch("/api/documents");
+        if (!res.ok) {
+          throw new Error(`Request failed (${res.status})`);
+        }
+        const data = await res.json();
+        if (!cancelled && data.docs) setDocs(data.docs);
+      } catch (err) {
+        if (!cancelled) console.error("Failed to load documents:", err);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const filtered = docs.filter((d) => {

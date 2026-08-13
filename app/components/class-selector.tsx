@@ -33,7 +33,10 @@ export default function ClassSelector({
   useEffect(() => {
     let cancelled = false;
     fetch("/api/classes")
-      .then((r) => r.json())
+      .then((r) => {
+        if (!r.ok) throw new Error(`Request failed (${r.status})`);
+        return r.json();
+      })
       .then((data) => {
         if (cancelled) return;
         if (data.classes) {

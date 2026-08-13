@@ -23,7 +23,10 @@ export default function McqResultPage() {
       // leave as-is if malformed
     }
     fetch(`/api/mcq/result?key=${encodeURIComponent(lookupKey)}`)
-      .then((r) => r.json())
+      .then((r) => {
+        if (!r.ok) throw new Error(`Request failed (${r.status})`);
+        return r.json();
+      })
       .then((res) => {
         if (res.error) throw new Error(res.error);
         if (!Array.isArray(res.questions)) throw new Error("Invalid result");

@@ -5,12 +5,12 @@ import { getSessionUser } from "@/app/lib/require-auth";
 import { generateClassCode } from "@/app/lib/class-code";
 
 export async function GET(request: Request) {
-  const user = await getSessionUser(request.headers);
-  if (!user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
   try {
+    const user = await getSessionUser(request.headers);
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const memberships = await prisma.member.findMany({
       where: { userId: user.id },
       include: {
@@ -52,9 +52,18 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
-  const user = await getSessionUser(request.headers);
-  if (!user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  let user: { id: string } | null;
+  try {
+    user = await getSessionUser(request.headers);
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+  } catch (error) {
+    console.error("Failed to authenticate class creation:", error);
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : "Authentication failed" },
+      { status: 500 },
+    );
   }
 
   let body: { name?: unknown; description?: unknown };

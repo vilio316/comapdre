@@ -3,22 +3,22 @@ import prisma from "@/lib/prisma";
 import { getSessionUser } from "@/app/lib/require-auth";
 
 export async function GET(request: Request) {
-  const user = await getSessionUser(request.headers);
-  if (!user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
-  const url = new URL(request.url);
-  const query = (url.searchParams.get("q") ?? "").trim();
-
-  if (!query) {
-    return NextResponse.json({ classes: [] });
-  }
-  if (query.length > 100) {
-    return NextResponse.json({ error: "Search query must be 100 characters or fewer" }, { status: 400 });
-  }
-
   try {
+    const user = await getSessionUser(request.headers);
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const url = new URL(request.url);
+    const query = (url.searchParams.get("q") ?? "").trim();
+
+    if (!query) {
+      return NextResponse.json({ classes: [] });
+    }
+    if (query.length > 100) {
+      return NextResponse.json({ error: "Search query must be 100 characters or fewer" }, { status: 400 });
+    }
+
     const myOrgIds = (
       await prisma.member.findMany({ where: { userId: user.id }, select: { organizationId: true } })
     ).map((m) => m.organizationId);

@@ -54,7 +54,10 @@ export default function ClassesPage() {
 
   useEffect(() => {
     fetch("/api/classes")
-      .then((r) => r.json())
+      .then((r) => {
+        if (!r.ok) throw new Error(`Request failed (${r.status})`);
+        return r.json();
+      })
       .then((data) => {
         if (data.classes) setMyClasses(data.classes);
         if (data.error) setError(data.error);
@@ -72,7 +75,10 @@ export default function ClassesPage() {
       fetch(`/api/classes/search?q=${encodeURIComponent(q)}`, {
         signal: controller.signal,
       })
-        .then((r) => r.json())
+        .then((r) => {
+          if (!r.ok) throw new Error(`Request failed (${r.status})`);
+          return r.json();
+        })
         .then((data) => {
           if (data.classes) setResults(data.classes);
           if (data.error) setError(data.error);
@@ -94,11 +100,18 @@ export default function ClassesPage() {
         `/api/classes/${encodeURIComponent(cls.id)}/join`,
         { method: "POST" },
       );
-      const data = await res.json();
       if (!res.ok) {
-        setError(data.error ?? "Failed to join class");
+        let message = "Failed to join class";
+        try {
+          const data = await res.json();
+          if (data && typeof data.error === "string") message = data.error;
+        } catch {
+          // non-JSON error body
+        }
+        setError(message);
         return;
       }
+      const data = await res.json();
       const joined: MyClass = {
         id: data.class.id,
         name: data.class.name,
@@ -132,11 +145,18 @@ export default function ClassesPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name: newName, description: newDescription }),
       });
-      const data = await res.json();
       if (!res.ok) {
-        setError(data.error ?? "Failed to create class");
+        let message = "Failed to create class";
+        try {
+          const data = await res.json();
+          if (data && typeof data.error === "string") message = data.error;
+        } catch {
+          // non-JSON error body
+        }
+        setError(message);
         return;
       }
+      const data = await res.json();
       const created: MyClass = {
         id: data.class.id,
         name: data.class.name,

@@ -3,14 +3,14 @@ import prisma from "@/lib/prisma";
 import { getSessionUser } from "@/app/lib/require-auth";
 
 export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
-  const user = await getSessionUser(request.headers);
-  if (!user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
-  const { id } = await params;
-
   try {
+    const user = await getSessionUser(request.headers);
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const { id } = await params;
+
     const organization = await prisma.organization.findUnique({
       where: { id },
       include: { members: { select: { userId: true } } },

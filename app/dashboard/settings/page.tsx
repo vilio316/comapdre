@@ -43,8 +43,17 @@ export default function SettingsPage() {
         method: "POST",
         body: formData,
       });
-      const result = await res.json();
-      if (!res.ok) throw new Error(result.error || "Upload failed");
+      if (!res.ok) {
+        let message = "Upload failed";
+        try {
+          const errBody = await res.json();
+          if (errBody && typeof errBody.error === "string") message = errBody.error;
+        } catch {
+          // non-JSON error body
+        }
+        throw new Error(message);
+      }
+      await res.json();
       await refetch();
       setPreview(null);
     } catch (err) {

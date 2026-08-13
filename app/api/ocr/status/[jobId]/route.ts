@@ -6,21 +6,29 @@ export async function GET(
   request: Request,
   { params }: { params: Promise<{ jobId: string }> },
 ) {
-  const user = await getSessionUser(request.headers);
-  if (!user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  try {
+    const user = await getSessionUser(request.headers);
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const { jobId } = await params;
+    const job = await getJobStatus(jobId);
+
+    if (!job) {
+      return NextResponse.json({ error: "Job not found" }, { status: 404 });
+    }
+
+    return NextResponse.json({
+      status: job.status,
+      result: job.result,
+      error: job.error,
+    });
+  } catch (error) {
+    console.error("Failed to get OCR job status:", error);
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : "Failed to get job status" },
+      { status: 500 },
+    );
   }
-
-  const { jobId } = await params;
-  const job = await getJobStatus(jobId);
-
-  if (!job) {
-    return NextResponse.json({ error: "Job not found" }, { status: 404 });
-  }
-
-  return NextResponse.json({
-    status: job.status,
-    result: job.result,
-    error: job.error,
-  });
 }
