@@ -11,6 +11,7 @@ const nav = [
   { href: "/dashboard/mcq", label: "MCQ" },
   { href: "/dashboard/exam-prep", label: "Exam Prep" },
   { href: "/dashboard/ocr", label: "OCR" },
+  { href: "/dashboard/classes", label: "Classes" },
   { href: "/dashboard/documents", label: "Documents" },
   { href: "/dashboard/settings", label: "Settings" },
 ];

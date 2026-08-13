@@ -13,15 +13,17 @@ datasource db {
 }
 
 model User {
-  id            String    @id
+  id            String        @id
   name          String
   email         String
-  emailVerified Boolean   @default(false)
+  emailVerified Boolean       @default(false)
   image         String?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
   sessions      Session[]
   accounts      Account[]
+  ownedClasses  Class[]       @relation("ClassOwner")
+  classMembers  ClassMember[]
 
   @@unique([email])
   @@map("user")
@@ -73,4 +75,31 @@ model Verification {
 
   @@index([identifier])
   @@map("verification")
+}
+
+model Class {
+  id          String        @id @default(cuid())
+  name        String
+  code        String        @unique
+  description String?
+  ownerId     String
+  owner       User          @relation("ClassOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  members     ClassMember[]
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  @@index([name])
+  @@map("class")
+}
+
+model ClassMember {
+  userId    String
+  classId   String
+  role      String   @default("member")
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  class     Class    @relation(fields: [classId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@id([userId, classId])
+  @@map("class_member")
 }

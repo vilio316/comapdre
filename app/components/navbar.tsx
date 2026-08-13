@@ -105,6 +105,16 @@ export default function Navbar() {
                     OCR
                   </Link>
                   <Link
+                    href="/dashboard/classes"
+                    className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
+                      pathname === "/dashboard/classes"
+                        ? "bg-gold text-deep"
+                        : "text-blue-light hover:bg-deep-light hover:text-gold-light"
+                    }`}
+                  >
+                    Classes
+                  </Link>
+                  <Link
                     href="/dashboard/compile"
                     className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
                       pathname === "/dashboard/compile"
@@ -192,6 +202,12 @@ export default function Navbar() {
                 <MobileLink
                   href="/dashboard/ocr"
                   label="OCR"
+                  pathname={pathname}
+                  onClick={() => setOpen(false)}
+                />
+                <MobileLink
+                  href="/dashboard/classes"
+                  label="Classes"
                   pathname={pathname}
                   onClick={() => setOpen(false)}
                 />
