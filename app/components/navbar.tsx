@@ -10,6 +10,16 @@ import { NotificationCenter } from "@/app/components/notification-center";
 import { FaMoon, FaSun } from "react-icons/fa6";
 import { IoClose, IoMenu } from "react-icons/io5";
 
+const navLinks = [
+  { href: "/dashboard", label: "Dashboard" },
+  { href: "/dashboard/mcq", label: "MCQ" },
+  { href: "/dashboard/exam-prep", label: "Exam Prep" },
+  { href: "/dashboard/ocr", label: "OCR" },
+  { href: "/dashboard/classes", label: "Classes" },
+  { href: "/dashboard/compile", label: "Compile" },
+  { href: "/dashboard/documents", label: "Documents" },
+];
+
 export default function Navbar() {
   const pathname = usePathname();
   const router = useRouter();
@@ -17,12 +27,16 @@ export default function Navbar() {
   const { useSession } = authClient;
   const { data } = useSession();
   const { theme, toggle } = useTheme();
-  const inDashboard = pathname.startsWith("/dashboard");
+
+  const close = () => setOpen(false);
 
   const logout = () => {
     authClient.signOut({
       fetchOptions: {
-        onSuccess: () => router.push("/"),
+        onSuccess: () => {
+          close();
+          router.push("/");
+        },
       },
     });
   };
@@ -52,183 +66,58 @@ export default function Navbar() {
 
           <button
             onClick={() => setOpen(!open)}
-            className="flex items-center justify-center rounded-md p-1.5 text-blue-light hover:text-gold-light lg:hidden"
-            aria-label="Toggle menu"
+            className="flex items-center justify-center rounded-md p-1.5 text-blue-light hover:text-gold-light"
+            aria-label={open ? "Close menu" : "Open menu"}
+            aria-expanded={open}
           >
             {open ? <IoClose /> : <IoMenu />}
           </button>
         </div>
-
-        <nav className="hidden items-center gap-1 lg:flex">
-          {data?.user ? (
-            <>
-              <Link
-                href="/dashboard"
-                className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
-                  inDashboard && pathname === "/dashboard"
-                    ? "bg-gold text-deep"
-                    : "text-blue-light hover:bg-deep-light hover:text-gold-light"
-                }`}
-              >
-                Dashboard
-              </Link>
-              {pathname.includes("dashb") && (
-                <div>
-                  <Link
-                    href="/dashboard/mcq"
-                    className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
-                      pathname === "/dashboard/mcq"
-                        ? "bg-gold text-deep"
-                        : "text-blue-light hover:bg-deep-light hover:text-gold-light"
-                    }`}
-                  >
-                    MCQ
-                  </Link>
-                  <Link
-                    href="/dashboard/exam-prep"
-                    className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
-                      pathname === "/dashboard/exam-prep"
-                        ? "bg-gold text-deep"
-                        : "text-blue-light hover:bg-deep-light hover:text-gold-light"
-                    }`}
-                  >
-                    Exam Prep
-                  </Link>
-                  <Link
-                    href="/dashboard/ocr"
-                    className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
-                      pathname === "/dashboard/ocr"
-                        ? "bg-gold text-deep"
-                        : "text-blue-light hover:bg-deep-light hover:text-gold-light"
-                    }`}
-                  >
-                    OCR
-                  </Link>
-                  <Link
-                    href="/dashboard/classes"
-                    className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
-                      pathname === "/dashboard/classes"
-                        ? "bg-gold text-deep"
-                        : "text-blue-light hover:bg-deep-light hover:text-gold-light"
-                    }`}
-                  >
-                    Classes
-                  </Link>
-                  <Link
-                    href="/dashboard/compile"
-                    className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
-                      pathname === "/dashboard/compile"
-                        ? "bg-gold text-deep"
-                        : "text-blue-light hover:bg-deep-light hover:text-gold-light"
-                    }`}
-                  >
-                    Compile
-                  </Link>
-                  <Link
-                    href="/dashboard/documents"
-                    className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
-                      pathname === "/dashboard/documents"
-                        ? "bg-gold text-deep"
-                        : "text-blue-light hover:bg-deep-light hover:text-gold-light"
-                    }`}
-                  >
-                    Documents
-                  </Link>
-                </div>
-              )}
-              <button
-                onClick={logout}
-                className="ml-2 rounded-md px-3 py-1.5 text-sm font-medium text-blue-light transition-colors hover:bg-deep-light hover:text-gold-light"
-              >
-                Sign out
-              </button>
-            </>
-          ) : (
-            <>
-              {pathname !== "/" && (
-                <Link
-                  href="/"
-                  className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
-                    pathname === "/"
-                      ? "bg-gold text-deep"
-                      : "text-blue-light hover:bg-deep-light hover:text-gold-light"
-                  }`}
-                >
-                  Home
-                </Link>
-              )}
-              <Link
-                href="/auth/sign-in"
-                className="rounded-md px-3 py-1.5 text-sm font-medium text-blue-light transition-colors hover:bg-deep-light hover:text-gold-light"
-              >
-                Sign in
-              </Link>
-              {!data?.user && (
-                <Link
-                  href="/auth/sign-up"
-                  className="rounded-md bg-gold px-3 py-1.5 text-sm font-medium text-deep transition-colors hover:bg-gold-light"
-                >
-                  Sign up
-                </Link>
-              )}
-            </>
-          )}
-        </nav>
       </div>
 
       {open && (
-        <nav className="border-t border-deep-light px-4 pb-3 pt-2 lg:hidden">
+        <div className="fixed inset-0 z-40" aria-hidden="true">
+          <div
+            className="absolute inset-0 bg-black/50"
+            onClick={close}
+          />
+        </div>
+      )}
+
+      <aside
+        className={`fixed inset-y-0 right-0 z-50 flex w-72 flex-col bg-deep shadow-xl transition-transform duration-200 ${
+          open ? "translate-x-0" : "pointer-events-none translate-x-full"
+        }`}
+        aria-label="Navigation"
+        aria-hidden={!open}
+      >
+        <div className="flex items-center justify-between border-b border-deep-light px-4 py-3">
+          <span className="text-sm font-bold text-gold">Menu</span>
+          <button
+            onClick={close}
+            className="rounded-md p-1.5 text-blue-light transition-colors hover:bg-deep-light hover:text-gold-light"
+            aria-label="Close menu"
+          >
+            <IoClose />
+          </button>
+        </div>
+
+        <nav className="flex-1 overflow-y-auto px-3 py-4">
           <div className="flex flex-col gap-1">
             {data?.user ? (
               <>
-                <MobileLink
-                  href="/dashboard"
-                  label="Dashboard"
-                  pathname={pathname}
-                  onClick={() => setOpen(false)}
-                />
-                <MobileLink
-                  href="/dashboard/mcq"
-                  label="MCQ"
-                  pathname={pathname}
-                  onClick={() => setOpen(false)}
-                />
-                <MobileLink
-                  href="/dashboard/exam-prep"
-                  label="Exam Prep"
-                  pathname={pathname}
-                  onClick={() => setOpen(false)}
-                />
-                <MobileLink
-                  href="/dashboard/ocr"
-                  label="OCR"
-                  pathname={pathname}
-                  onClick={() => setOpen(false)}
-                />
-                <MobileLink
-                  href="/dashboard/classes"
-                  label="Classes"
-                  pathname={pathname}
-                  onClick={() => setOpen(false)}
-                />
-                <MobileLink
-                  href="/dashboard/compile"
-                  label="Compile"
-                  pathname={pathname}
-                  onClick={() => setOpen(false)}
-                />
-                <MobileLink
-                  href="/dashboard/documents"
-                  label="Documents"
-                  pathname={pathname}
-                  onClick={() => setOpen(false)}
-                />
+                {navLinks.map(({ href, label }) => (
+                  <SideNavLink
+                    key={href}
+                    href={href}
+                    label={label}
+                    pathname={pathname}
+                    onClick={close}
+                  />
+                ))}
                 <button
-                  onClick={() => {
-                    logout();
-                    setOpen(false);
-                  }}
-                  className="rounded-md px-3 py-2 text-left text-sm font-medium text-blue-light hover:bg-deep-light hover:text-gold-light"
+                  onClick={logout}
+                  className="rounded-md px-3 py-2 text-left text-sm font-medium text-blue-light transition-colors hover:bg-deep-light hover:text-gold-light"
                 >
                   Sign out
                 </button>
@@ -236,36 +125,36 @@ export default function Navbar() {
             ) : (
               <>
                 {pathname !== "/" && (
-                  <MobileLink
+                  <SideNavLink
                     href="/"
                     label="Home"
                     pathname={pathname}
-                    onClick={() => setOpen(false)}
+                    onClick={close}
                   />
                 )}
-                <MobileLink
+                <SideNavLink
                   href="/auth/sign-in"
                   label="Sign in"
                   pathname={pathname}
-                  onClick={() => setOpen(false)}
+                  onClick={close}
                 />
-                <MobileLink
+                <SideNavLink
                   href="/auth/sign-up"
                   label="Sign up"
                   pathname={pathname}
-                  onClick={() => setOpen(false)}
+                  onClick={close}
                   gold
                 />
               </>
             )}
           </div>
         </nav>
-      )}
+      </aside>
     </header>
   );
 }
 
-function MobileLink({
+function SideNavLink({
   href,
   label,
   pathname,
