@@ -3,6 +3,7 @@ import { getObjectSignedUrl } from "@/lib/cloudflareHelper";
 import { createOnlineOcrJob, getCachedOcrResult } from "@/app/lib/job-manager";
 import { ocrQueue } from "@/app/lib/ocr-queue";
 import { sanitizeText } from "@/app/lib/text-sanitize";
+import { getSessionUser } from "@/app/lib/require-auth";
 
 const extToMime: Record<string, string> = {
   pdf: "application/pdf",
@@ -18,6 +19,11 @@ export async function POST(
   { params }: { params: Promise<{ key: string }> },
 ) {
   try {
+    const user = await getSessionUser(request.headers);
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const { key } = await params;
     const decodedKey = decodeURIComponent(key);
     const ext = decodedKey.split(".").pop()?.toLowerCase() ?? "";

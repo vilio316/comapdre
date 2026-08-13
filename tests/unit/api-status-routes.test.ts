@@ -36,6 +36,10 @@ const params = (jobId: string) => ({ params: Promise.resolve({ jobId }) });
 
 beforeEach(() => {
   vi.clearAllMocks();
+  vi.mocked(auth.api.getSession).mockResolvedValue({
+    user: { id: "u1", email: "a@b.c" },
+    session: {},
+  } as never);
 });
 
 describe("GET /api/ocr/status/[jobId]", () => {

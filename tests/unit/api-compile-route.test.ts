@@ -10,9 +10,14 @@ vi.mock("fs/promises", () => ({
   default: { writeFile: vi.fn(async () => undefined) },
 }));
 
+vi.mock("@/lib/auth", () => ({
+  auth: { api: { getSession: vi.fn() } },
+}));
+
 import { POST as compilePost } from "@/app/api/compile/route";
 import { POST as pdfPost } from "@/app/api/compile/pdf/route";
 import { createCompileJob, createPdfJob } from "@/app/lib/job-manager";
+import { auth } from "@/lib/auth";
 
 function buildRequest(fields: Record<string, string | File | string[]>) {
   const fd = new FormData();
@@ -32,9 +37,20 @@ function pngFile(name = "a.png") {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  vi.mocked(auth.api.getSession).mockResolvedValue({
+    user: { id: "u1", email: "a@b.c" },
+    session: {},
+  } as never);
 });
 
 describe("POST /api/compile", () => {
+  it("returns 401 when unauthenticated", async () => {
+    vi.mocked(auth.api.getSession).mockResolvedValue(null);
+    const res = await compilePost(buildRequest({ keys: ["notes.pdf"] }));
+    expect(res.status).toBe(401);
+    expect(createCompileJob).not.toHaveBeenCalled();
+  });
+
   it("returns 400 when nothing is provided", async () => {
     const res = await compilePost(buildRequest({}));
     expect(res.status).toBe(400);

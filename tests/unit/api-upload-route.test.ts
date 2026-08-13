@@ -26,11 +26,21 @@ function fdWithFile(file?: File, tags?: string) {
 const pdfFile = () => new File([new Uint8Array(100)], "notes.pdf", { type: "application/pdf" });
 const pngFile = () => new File([new Uint8Array(100)], "a.png", { type: "image/png" });
 
+const authedUser = { user: { id: "u1", email: "a@b.c" }, session: {} } as never;
+
 beforeEach(() => {
   vi.clearAllMocks();
+  vi.mocked(auth.api.getSession).mockResolvedValue(authedUser);
 });
 
 describe("POST /api/upload", () => {
+  it("returns 401 when unauthenticated", async () => {
+    vi.mocked(auth.api.getSession).mockResolvedValue(null);
+    const res = await uploadPost(fdWithFile(pdfFile()) as never);
+    expect(res.status).toBe(401);
+    expect(uploadToR2).not.toHaveBeenCalled();
+  });
+
   it("returns 400 when no file is provided", async () => {
     const res = await uploadPost(fdWithFile() as never);
     expect(res.status).toBe(400);

@@ -1,8 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { uploadToR2 } from "@/lib/cloudflareHelper";
+import { getSessionUser } from "@/app/lib/require-auth";
 
 export async function POST(request: NextRequest) {
   try {
+    const user = await getSessionUser(request.headers);
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const formData = await request.formData();
     const file = formData.get("file") as File | null;
     const rawTags = formData.get("tags") as string | null;

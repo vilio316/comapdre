@@ -6,11 +6,18 @@ vi.mock("@/lib/cloudflareHelper", () => ({
   deleteObjectFromR2: vi.fn(),
 }));
 
+vi.mock("@/lib/auth", () => ({
+  auth: { api: { getSession: vi.fn() } },
+}));
+
 import { GET as listGet } from "@/app/api/documents/route";
 import { GET as docGet, DELETE as docDelete } from "@/app/api/documents/[key]/route";
 import { listObjectsInBucket, getObjectSignedUrl, deleteObjectFromR2 } from "@/lib/cloudflareHelper";
+import { auth } from "@/lib/auth";
 
 const params = (key: string) => ({ params: Promise.resolve({ key }) });
+
+const authedUser = { user: { id: "u1", email: "a@b.c" }, session: {} } as never;
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -77,16 +84,25 @@ describe("GET /api/documents/[key]", () => {
 });
 
 describe("DELETE /api/documents/[key]", () => {
+  it("returns 401 when unauthenticated", async () => {
+    vi.mocked(auth.api.getSession).mockResolvedValue(null);
+    const res = await docDelete({ headers: new Headers() } as Request, params("notes.pdf"));
+    expect(res.status).toBe(401);
+    expect(deleteObjectFromR2).not.toHaveBeenCalled();
+  });
+
   it("deletes the document and returns success", async () => {
+    vi.mocked(auth.api.getSession).mockResolvedValue(authedUser);
     vi.mocked(deleteObjectFromR2).mockResolvedValue({ key: "notes.pdf" });
-    const res = await docDelete({} as Request, params("notes.pdf"));
+    const res = await docDelete({ headers: new Headers() } as Request, params("notes.pdf"));
     expect(await res.json()).toEqual({ success: true });
     expect(deleteObjectFromR2).toHaveBeenCalledWith("notes.pdf");
   });
 
   it("returns 500 when deletion fails", async () => {
+    vi.mocked(auth.api.getSession).mockResolvedValue(authedUser);
     vi.mocked(deleteObjectFromR2).mockRejectedValue(new Error("r2 down"));
-    const res = await docDelete({} as Request, params("notes.pdf"));
+    const res = await docDelete({ headers: new Headers() } as Request, params("notes.pdf"));
     expect(res.status).toBe(500);
   });
 });

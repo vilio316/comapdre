@@ -20,12 +20,17 @@ vi.mock("fs/promises", () => ({
   default: { writeFile: vi.fn(async () => undefined) },
 }));
 
+vi.mock("@/lib/auth", () => ({
+  auth: { api: { getSession: vi.fn() } },
+}));
+
 import { POST as ocrPost } from "@/app/api/ocr/route";
 import { GET as ocrStatusGet } from "@/app/api/ocr/status/[jobId]/route";
 import { POST as docOcrPost } from "@/app/api/documents/[key]/ocr/route";
 import { getObjectSignedUrl } from "@/lib/cloudflareHelper";
 import { createLocalOcrJob, createOnlineOcrJob, getJobStatus, getCachedOcrResult } from "@/app/lib/job-manager";
 import { ocrQueue } from "@/app/lib/ocr-queue";
+import { auth } from "@/lib/auth";
 
 function fileFormData(files: { name: string; content: string; type: string }[]) {
   const fd = new FormData();
@@ -41,9 +46,22 @@ function postRequest(fd: FormData): { formData: () => Promise<FormData> } {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  vi.mocked(auth.api.getSession).mockResolvedValue({
+    user: { id: "u1", email: "a@b.c" },
+    session: {},
+  } as never);
 });
 
 describe("POST /api/ocr", () => {
+  it("returns 401 when unauthenticated", async () => {
+    vi.mocked(auth.api.getSession).mockResolvedValue(null);
+    const res = await ocrPost(
+      postRequest(fileFormData([{ name: "photo.png", content: "abc", type: "image/png" }])),
+    );
+    expect(res.status).toBe(401);
+    expect(createLocalOcrJob).not.toHaveBeenCalled();
+  });
+
   it("writes uploaded files to temp paths and enqueues a local OCR job", async () => {
     vi.mocked(createLocalOcrJob).mockResolvedValue({ id: "job-123" });
 

@@ -4,6 +4,7 @@ import { writeFile } from "fs/promises";
 import path from "path";
 import os from "os";
 import { resolveMime } from "@/app/lib/mcq-utils";
+import { getSessionUser } from "@/app/lib/require-auth";
 
 function sanitizeTempName(name: string): string {
   const cleaned = name
@@ -15,6 +16,11 @@ function sanitizeTempName(name: string): string {
 
 export async function POST(request: NextRequest) {
   try {
+    const user = await getSessionUser(request.headers);
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const formData = await request.formData();
     const entries = formData
       .getAll("files")

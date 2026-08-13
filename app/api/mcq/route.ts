@@ -11,6 +11,7 @@ import {
 import { mcqQueue } from "@/app/lib/mcq-queue";
 import { recordMcqHistory } from "@/app/lib/mcq-history";
 import { resolveMime, MAX_FILES, MAX_TOTAL_BYTES, MAX_MCQS } from "@/app/lib/mcq-utils";
+import { getSessionUser } from "@/app/lib/require-auth";
 
 function buildMcqCacheKey(count: number, fileHashes: string[], keys: string[]): string {
   const content = [
@@ -23,6 +24,11 @@ function buildMcqCacheKey(count: number, fileHashes: string[], keys: string[]): 
 
 export async function POST(request: NextRequest) {
   try {
+    const user = await getSessionUser(request.headers);
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const formData = await request.formData();
     const count = Math.min(Math.max(Number(formData.get("count")) || 20, 1), MAX_MCQS);
     const files = formData

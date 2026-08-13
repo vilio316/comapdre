@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { deleteObjectFromR2, getObjectSignedUrl } from "@/lib/cloudflareHelper";
+import { getSessionUser } from "@/app/lib/require-auth";
 
 export async function GET(
   _request: NextRequest,
@@ -39,10 +40,15 @@ export async function GET(
 }
 
 export async function DELETE(
-  _request: NextRequest,
+  request: NextRequest,
   { params }: { params: Promise<{ key: string }> },
 ) {
   try {
+    const user = await getSessionUser(request.headers);
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const { key } = await params;
     const decodedKey = decodeURIComponent(key);
 

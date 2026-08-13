@@ -20,10 +20,15 @@ vi.mock("fs/promises", () => ({
   default: { writeFile: vi.fn(async () => undefined) },
 }));
 
+vi.mock("@/lib/auth", () => ({
+  auth: { api: { getSession: vi.fn() } },
+}));
+
 import { POST as mcqPost } from "@/app/api/mcq/route";
 import { createLocalMcqJob, createOnlineMcqJob, getMcqResult } from "@/app/lib/job-manager";
 import { mcqQueue } from "@/app/lib/mcq-queue";
 import { recordMcqHistory } from "@/app/lib/mcq-history";
+import { auth } from "@/lib/auth";
 
 function buildRequest(fields: Record<string, string | File | string[]>) {
   const fd = new FormData();
@@ -51,9 +56,20 @@ function mcqResultKey(keys: string[], count: number): string {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  vi.mocked(auth.api.getSession).mockResolvedValue({
+    user: { id: "u1", email: "a@b.c" },
+    session: {},
+  } as never);
 });
 
 describe("POST /api/mcq", () => {
+  it("returns 401 when unauthenticated", async () => {
+    vi.mocked(auth.api.getSession).mockResolvedValue(null);
+    const res = await mcqPost(buildRequest({ count: "5", keys: ["notes.pdf"] }));
+    expect(res.status).toBe(401);
+    expect(createLocalMcqJob).not.toHaveBeenCalled();
+  });
+
   it("returns 400 when no files or keys are provided", async () => {
     const res = await mcqPost(buildRequest({ count: "5" }));
     expect(res.status).toBe(400);

@@ -1,7 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getMcqResult } from "@/app/lib/job-manager";
+import { getSessionUser } from "@/app/lib/require-auth";
 
 export async function GET(request: NextRequest) {
+  const user = await getSessionUser(request.headers);
+  if (!user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   const key = request.nextUrl.searchParams.get("key");
   if (!key) {
     return NextResponse.json({ error: "Missing key" }, { status: 400 });

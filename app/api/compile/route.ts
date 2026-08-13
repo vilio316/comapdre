@@ -4,9 +4,15 @@ import path from "path";
 import os from "os";
 import { createCompileJob } from "@/app/lib/job-manager";
 import { resolveMime, MAX_FILES, MAX_TOTAL_BYTES } from "@/app/lib/mcq-utils";
+import { getSessionUser } from "@/app/lib/require-auth";
 
 export async function POST(request: NextRequest) {
   try {
+    const user = await getSessionUser(request.headers);
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const formData = await request.formData();
     const files = formData
       .getAll("files")

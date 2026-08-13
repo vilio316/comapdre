@@ -1,10 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createPdfJob } from "@/app/lib/job-manager";
+import { getSessionUser } from "@/app/lib/require-auth";
 
 const MAX_PDF_TEXT_BYTES = 5 * 1024 * 1024;
 
 export async function POST(request: NextRequest) {
   try {
+    const user = await getSessionUser(request.headers);
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const body = await request.json();
     const text = typeof body.text === "string" ? body.text : "";
     const fileName = typeof body.fileName === "string" ? body.fileName.trim() : "";
