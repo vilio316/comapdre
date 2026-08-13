@@ -63,13 +63,21 @@ export default function ClassesPage() {
   const [searching, setSearching] = useState(false);
   const [error, setError] = useState("");
   const [joiningId, setJoiningId] = useState<string | null>(null);
-  const [showCreate, setShowCreate] = useState(false);
+  const [showCreate, setShowCreate] = useState(() =>
+    typeof window !== "undefined" && window.location.search.includes("create=1"),
+  );
   const [newName, setNewName] = useState("");
   const [newDescription, setNewDescription] = useState("");
   const [creating, setCreating] = useState(false);
 
   const [pendingInvites, setPendingInvites] = useState<PendingInvitation[]>([]);
   const [invitesLoading, setInvitesLoading] = useState(true);
+
+  useEffect(() => {
+    if (showCreate && window.location.search.includes("create=1")) {
+      window.history.replaceState({}, "", "/dashboard/classes");
+    }
+  }, [showCreate]);
 
   useEffect(() => {
     fetch("/api/classes")

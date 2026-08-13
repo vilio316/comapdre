@@ -4,131 +4,67 @@ import { useState, useEffect } from "react";
 import { authClient } from "@/lib/auth-client";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import UploadPipeline from "@/app/components/upload-pipeline";
-import type { UploadedFile } from "@/app/components/upload-pipeline";
-import ConfirmDialog from "@/app/components/confirm-dialog";
 import { UserAvatar } from "@/app/components/user-avatar";
-import {} from "react-icons";
 import {
-  FaBook,
-  FaCamera,
-  FaClipboard,
-  FaFileImport,
+  FaUserGroup,
+  FaCode,
   FaGears,
-  FaTrash,
+  FaMagnifyingGlass,
+  FaPlus,
 } from "react-icons/fa6";
 import { FaSignOutAlt } from "react-icons/fa";
 
-interface Doc {
+interface MyClass {
   id: string;
   name: string;
-  type: string;
-  size: string;
-  uploaded: string;
-  tags: string[];
+  code: string;
+  description: string | null;
+  role: string;
+  memberCount: number;
 }
 
-const quickActions = [
-  {
-    title: "MCQ",
-    desc: "Generate practice questions",
-    href: "/dashboard/mcq",
-    icon: <FaClipboard />,
-  },
-  {
-    title: "Exam Prep",
-    desc: "Flashcards & summaries",
-    href: "/dashboard/exam-prep",
-    icon: <FaBook />,
-  },
-  {
-    title: "OCR",
-    desc: "Scan local documents for text",
-    href: "/dashboard/ocr",
-    icon: <FaCamera />,
-  },
-  {
-    title: "Compile",
-    desc: "Merge documents into one file",
-    href: "/dashboard/compile",
-    icon: <FaFileImport />,
-  },
-];
+const roleLabels: Record<string, string> = {
+  owner: "Owner",
+  admin: "Admin",
+  class_rep: "Class Rep",
+  member: "Member",
+};
+
+function roleLabel(role: string): string {
+  return roleLabels[role] ?? role;
+}
 
 export default function DashboardPage() {
   const { useSession } = authClient;
   const { data } = useSession();
   const router = useRouter();
 
-  const [docs, setDocs] = useState<Doc[]>([]);
+  const [classes, setClasses] = useState<MyClass[]>([]);
   const [loading, setLoading] = useState(true);
-  const [showUpload, setShowUpload] = useState(false);
-  const [search, setSearch] = useState("");
-  const [tagFilter, setTagFilter] = useState("");
-  const [deleteKey, setDeleteKey] = useState<string | null>(null);
-  const [deleting, setDeleting] = useState(false);
+  const [error, setError] = useState("");
 
   useEffect(() => {
     let cancelled = false;
-    (async () => {
-      try {
-        const res = await fetch("/api/documents");
-        if (!res.ok) {
-          throw new Error(`Request failed (${res.status})`);
-        }
-        const data = await res.json();
-        if (!cancelled && data.docs) setDocs(data.docs);
-      } catch (err) {
-        if (!cancelled) console.error("Failed to load documents:", err);
-      } finally {
+    fetch("/api/classes")
+      .then((res) => {
+        if (!res.ok) throw new Error(`Request failed (${res.status})`);
+        return res.json();
+      })
+      .then((data) => {
+        if (cancelled) return;
+        if (data.classes) setClasses(data.classes);
+        if (data.error) setError(data.error);
+      })
+      .catch((err) => {
+        if (!cancelled) console.error("Failed to load classes:", err);
+      })
+      .finally(() => {
         if (!cancelled) setLoading(false);
-      }
-    })();
+      });
     return () => {
       cancelled = true;
     };
   }, []);
-
-  const filtered = docs.filter((d) => {
-    const matchSearch = d.name.toLowerCase().includes(search.toLowerCase());
-    const matchTag = !tagFilter || d.tags.includes(tagFilter);
-    return matchSearch && matchTag;
-  });
-
-  const allTags = [...new Set(docs.flatMap((d) => d.tags))];
-
-  const handleUpload = (uf: UploadedFile, tags: string[]) => {
-    const doc: Doc = {
-      id: uf.id,
-      name: uf.name,
-      type: uf.type,
-      size: uf.size,
-      uploaded: new Date().toISOString().slice(0, 10),
-      tags,
-    };
-    setDocs((prev) => [doc, ...prev]);
-    setShowUpload(false);
-  };
-
-  const handleDelete = async () => {
-    if (!deleteKey) return;
-    setDeleting(true);
-    try {
-      const res = await fetch(
-        `/api/documents/${encodeURIComponent(deleteKey)}`,
-        {
-          method: "DELETE",
-        },
-      );
-      if (!res.ok) throw new Error("Delete failed");
-      setDocs((prev) => prev.filter((d) => d.id !== deleteKey));
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setDeleting(false);
-      setDeleteKey(null);
-    }
-  };
 
   const logout = () => {
     authClient.signOut({
@@ -169,131 +105,84 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      <div className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
-        {quickActions.map((a) => (
-          <Link
-            key={a.href}
-            href={a.href}
-            className="group rounded-xl border border-gray-200 bg-surface p-4 shadow-sm transition-all hover:-translate-y-0.5 hover:border-gold/40 hover:shadow-md"
-          >
-            <div className="mb-2 text-deep group-hover:text-gold transition-colors">
-              {a.icon}
-            </div>
-            <p className="text-sm font-semibold text-deep">{a.title}</p>
-            <p className="mt-0.5 text-xs text-ink-muted">{a.desc}</p>
-          </Link>
-        ))}
-      </div>
-
-      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-        <h2 className="text-lg font-bold text-deep">Your Documents</h2>
-        {!showUpload && (
-          <button
-            onClick={() => setShowUpload(true)}
-            className="rounded-lg bg-gold px-4 py-2 text-xs font-medium text-deep transition-colors hover:bg-gold-light"
-          >
-            + Upload
-          </button>
-        )}
-      </div>
-
-      {showUpload && (
-        <div className="mb-5">
-          <UploadPipeline
-            onComplete={handleUpload}
-            onCancel={() => setShowUpload(false)}
-          />
+      {error && (
+        <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          {error}
         </div>
       )}
-
-      <div className="mb-4 flex flex-col gap-3 sm:flex-row">
-        <input
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder="Search documents..."
-          className="flex-1 rounded-lg border border-gray-300 bg-surface px-4 py-2 text-sm text-ink outline-none focus:border-blue focus:ring-2 focus:ring-blue/20"
-        />
-        <select
-          value={tagFilter}
-          onChange={(e) => setTagFilter(e.target.value)}
-          className="rounded-lg border border-gray-300 bg-surface px-3 py-2 text-sm outline-none focus:border-blue focus:ring-2 focus:ring-blue/20"
-        >
-          <option value="">All tags</option>
-          {allTags.map((t) => (
-            <option key={t} value={t}>
-              {t}
-            </option>
-          ))}
-        </select>
-      </div>
 
       {loading ? (
-        <div className="mt-10 flex justify-center">
-          <div className="h-6 w-6 animate-spin rounded-full border-2 border-gray-300 border-t-deep" />
+        <div className="mt-16 flex justify-center">
+          <div className="h-8 w-8 animate-spin rounded-full border-2 border-gray-300 border-t-deep" />
         </div>
-      ) : filtered.length === 0 ? (
-        <div className="mt-10 text-center">
-          <p className="text-sm text-ink-muted">No documents found.</p>
+      ) : classes.length === 0 ? (
+        <div className="rounded-xl border border-dashed border-gray-300 bg-surface px-6 py-16 text-center">
+          <FaUserGroup className="mx-auto mb-4 text-4xl text-ink-muted" />
+          <h2 className="text-lg font-bold text-deep">Join a class to get started</h2>
+          <p className="mx-auto mt-2 max-w-md text-sm text-ink-muted">
+            Your classes and their tools will appear here once you join. Search
+            for a class by name or code, or create your own.
+          </p>
+          <div className="mt-6 flex flex-wrap justify-center gap-3">
+            <Link
+              href="/dashboard/classes"
+              className="inline-flex items-center gap-1.5 rounded-lg bg-gold px-4 py-2 text-xs font-medium text-deep transition-colors hover:bg-gold-light"
+            >
+              <FaMagnifyingGlass /> Browse classes
+            </Link>
+            <Link
+              href="/dashboard/classes?create=1"
+              className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 px-4 py-2 text-xs font-medium text-ink-muted transition-colors hover:bg-gray-50 hover:text-deep"
+            >
+              <FaPlus /> Create a class
+            </Link>
+          </div>
         </div>
       ) : (
-        <div className="space-y-2">
-          {filtered.map((doc) => (
-            <div
-              key={doc.id}
-              className="flex items-center gap-3 rounded-lg border border-gray-200 bg-surface p-3 transition-colors hover:border-gold/40 sm:gap-4 sm:p-3.5"
+        <div>
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+            <h2 className="text-base font-bold text-deep">Your Classes</h2>
+            <Link
+              href="/dashboard/classes"
+              className="text-xs font-medium text-ink-muted transition-colors hover:text-deep"
             >
-              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-deep/5 text-[10px] font-bold text-deep sm:h-9 sm:w-9 sm:text-xs">
-                {doc.type}
-              </div>
-              <div className="w-32 flex-1 md:min-w-0 truncate">
-                <Link
-                  href={`/dashboard/documents/${encodeURIComponent(doc.id)}`}
-                  className="text-[12px] md:text-sm font-medium text-deep hover:text-gold transition-colors"
-                >
-                  {doc.name}
-                </Link>
-                <p className="text-[11px] text-ink-muted">
-                  {doc.size} &middot; {doc.uploaded}
-                </p>
-              </div>
-              <div className="hidden gap-1 sm:flex">
-                {doc.tags.map((t) => (
-                  <span
-                    key={t}
-                    className="rounded-full bg-gold/10 px-2 py-0.5 text-[11px] font-medium text-gold"
-                  >
-                    {t}
-                  </span>
-                ))}
-              </div>
+              Manage classes
+            </Link>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {classes.map((cls) => (
               <Link
-                href={`/dashboard/documents/${encodeURIComponent(doc.id)}`}
-                className="rounded-md border border-gray-200 px-2 py-1 text-[11px] text-ink-muted transition-colors hover:bg-gray-50 sm:px-2.5 sm:text-xs"
+                key={cls.id}
+                href={`/dashboard/classes/${cls.id}`}
+                className="flex flex-col rounded-xl border border-gray-200 bg-surface p-4 shadow-sm transition-all hover:border-gold/40 hover:shadow-md"
               >
-                Details
+                <div className="mb-2 flex items-center justify-between gap-2">
+                  <p className="truncate text-sm font-semibold text-deep">
+                    {cls.name}
+                  </p>
+                  <span className="shrink-0 rounded-full bg-gold/10 px-2 py-0.5 text-[11px] font-medium text-gold">
+                    {roleLabel(cls.role)}
+                  </span>
+                </div>
+                {cls.description && (
+                  <p className="line-clamp-2 text-xs text-ink-muted">
+                    {cls.description}
+                  </p>
+                )}
+                <div className="mt-3 flex items-center justify-between border-t border-gray-100 pt-3 text-[11px] text-ink-muted">
+                  <span className="inline-flex items-center gap-1.5">
+                    <FaUserGroup /> {cls.memberCount} member
+                    {cls.memberCount === 1 ? "" : "s"}
+                  </span>
+                  <span className="inline-flex items-center gap-1.5 font-medium text-gold">
+                    <FaCode /> {cls.code}
+                  </span>
+                </div>
               </Link>
-              <button
-                onClick={() => setDeleteKey(doc.id)}
-                className="rounded-md p-1.5 text-ink-muted transition-colors hover:bg-red-50 hover:text-red-600"
-                aria-label={`Delete ${doc.name}`}
-              >
-                <FaTrash />
-              </button>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
       )}
-
-      <ConfirmDialog
-        open={deleteKey !== null}
-        title="Delete document"
-        message={`Are you sure you want to delete "${deleteKey}"? This cannot be undone.`}
-        confirmLabel={deleting ? "Deleting..." : "Delete"}
-        onConfirm={handleDelete}
-        onCancel={() => {
-          if (!deleting) setDeleteKey(null);
-        }}
-      />
     </div>
   );
 }

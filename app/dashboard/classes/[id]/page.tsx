@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
+import { authClient } from "@/lib/auth-client";
 import {
   FaArrowLeft,
   FaCode,
@@ -11,6 +12,10 @@ import {
   FaEnvelope,
   FaCheck,
   FaXmark,
+  FaClipboard,
+  FaBook,
+  FaCamera,
+  FaFileImport,
 } from "react-icons/fa6";
 
 interface ClassMember {
@@ -56,6 +61,33 @@ const roleLabels: Record<string, string> = {
 function roleLabel(role: string): string {
   return roleLabels[role] ?? role;
 }
+
+const classTools = [
+  {
+    title: "MCQ",
+    desc: "Generate practice questions",
+    href: "/dashboard/mcq",
+    icon: <FaClipboard />,
+  },
+  {
+    title: "Exam Prep",
+    desc: "Flashcards & summaries",
+    href: "/dashboard/exam-prep",
+    icon: <FaBook />,
+  },
+  {
+    title: "OCR",
+    desc: "Scan local documents for text",
+    href: "/dashboard/ocr",
+    icon: <FaCamera />,
+  },
+  {
+    title: "Compile",
+    desc: "Merge documents into one file",
+    href: "/dashboard/compile",
+    icon: <FaFileImport />,
+  },
+];
 
 export default function ClassDetailPage() {
   const params = useParams();
@@ -104,6 +136,12 @@ export default function ClassDetailPage() {
       .then((body) => setData(body))
       .catch((err) => setError(err instanceof Error ? err.message : "Failed to load class"))
       .finally(() => setLoading(false));
+  }, [id]);
+
+  useEffect(() => {
+    authClient.organization.setActive({ organizationId: id }).catch(() => {
+      // active class is best-effort; tools fall back to recent membership
+    });
   }, [id]);
 
   const handleInvite = async (e: React.FormEvent) => {
@@ -231,6 +269,22 @@ export default function ClassDetailPage() {
             </div>
           </div>
         </div>
+      </div>
+
+      <div className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
+        {classTools.map((tool) => (
+          <Link
+            key={tool.href}
+            href={tool.href}
+            className="group rounded-xl border border-gray-200 bg-surface p-4 shadow-sm transition-all hover:-translate-y-0.5 hover:border-gold/40 hover:shadow-md"
+          >
+            <div className="mb-2 text-deep transition-colors group-hover:text-gold">
+              {tool.icon}
+            </div>
+            <p className="text-sm font-semibold text-deep">{tool.title}</p>
+            <p className="mt-0.5 text-xs text-ink-muted">{tool.desc}</p>
+          </Link>
+        ))}
       </div>
 
       {inviteError && (
