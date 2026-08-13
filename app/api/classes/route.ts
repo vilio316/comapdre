@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
+import { auth } from "@/lib/auth";
 import { getSessionUser } from "@/app/lib/require-auth";
 import { generateClassCode } from "@/app/lib/class-code";
 
@@ -10,29 +11,33 @@ export async function GET(request: Request) {
   }
 
   try {
-    const memberships = await prisma.classMember.findMany({
+    const memberships = await prisma.member.findMany({
       where: { userId: user.id },
       include: {
-        class: {
+        organization: {
           include: {
-            owner: { select: { name: true } },
-            members: { select: { userId: true } },
+            members: {
+              include: { user: { select: { name: true } } },
+            },
           },
         },
       },
       orderBy: { createdAt: "desc" },
     });
 
-    const classes = memberships.map((m) => ({
-      id: m.class.id,
-      name: m.class.name,
-      code: m.class.code,
-      description: m.class.description,
-      role: m.role,
-      ownerName: m.class.owner.name,
-      memberCount: m.class.members.length,
-      createdAt: m.class.createdAt.toISOString(),
-    }));
+    const classes = memberships.map((m) => {
+      const owner = m.organization.members.find((member) => member.role === "owner");
+      return {
+        id: m.organization.id,
+        name: m.organization.name,
+        code: m.organization.slug,
+        description: m.organization.description,
+        role: m.role,
+        ownerName: owner?.user.name ?? null,
+        memberCount: m.organization.members.length,
+        createdAt: m.organization.createdAt.toISOString(),
+      };
+    });
 
     return NextResponse.json({ classes });
   } catch (error) {
@@ -68,29 +73,54 @@ export async function POST(request: Request) {
   const description =
     typeof body.description === "string" && body.description.trim()
       ? body.description.trim().slice(0, 500)
-      : null;
+      : undefined;
 
   try {
-    const cls = await prisma.$transaction(async (tx) => {
-      let code = generateClassCode();
-      let attempts = 0;
-      while ((await tx.class.findUnique({ where: { code } })) && attempts < 10) {
-        code = generateClassCode();
-        attempts++;
+    let code = generateClassCode();
+    let attempts = 0;
+    let organization: {
+      id: string;
+      name: string;
+      slug: string;
+      description?: string | null;
+    } | null = null;
+    while (attempts < 10) {
+      try {
+        organization = await auth.api.createOrganization({
+          body: {
+            name,
+            slug: code,
+            ...(description !== undefined ? { description } : {}),
+          },
+          headers: request.headers,
+        });
+        break;
+      } catch (err) {
+        const message = err instanceof Error ? err.message : "";
+        if (message.toLowerCase().includes("slug") && attempts < 9) {
+          code = generateClassCode();
+          attempts++;
+          continue;
+        }
+        return NextResponse.json({ error: message || "Failed to create class" }, { status: 400 });
       }
+    }
 
-      const created = await tx.class.create({
-        data: { name, code, description, ownerId: user.id },
-      });
+    if (!organization) {
+      return NextResponse.json({ error: "Failed to create class" }, { status: 500 });
+    }
 
-      await tx.classMember.create({
-        data: { userId: user.id, classId: created.id, role: "owner" },
-      });
-
-      return created;
-    });
-
-    return NextResponse.json({ class: { id: cls.id, name: cls.name, code: cls.code, description: cls.description } }, { status: 201 });
+    return NextResponse.json(
+      {
+        class: {
+          id: organization.id,
+          name: organization.name,
+          code: organization.slug,
+          description: organization.description ?? null,
+        },
+      },
+      { status: 201 },
+    );
   } catch (error) {
     console.error("Failed to create class:", error);
     return NextResponse.json(

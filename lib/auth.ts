@@ -2,6 +2,8 @@ import { PrismaClient } from "@/app/generated/prisma/client";
 import { betterAuth } from "better-auth";
 import { prismaAdapter } from "better-auth/adapters/prisma";
 import { PrismaPg } from "@prisma/adapter-pg";
+import { organization } from "better-auth/plugins";
+import { ac, roles } from "@/app/lib/org-permissions";
 import * as dotenv from "dotenv";
 dotenv.config();
 
@@ -21,4 +23,20 @@ export const auth = betterAuth({
     },
   },
   emailAndPassword: { enabled: true },
+  plugins: [
+    organization({
+      ac,
+      roles,
+      schema: {
+        organization: {
+          additionalFields: {
+            description: {
+              type: "string",
+              required: false,
+            },
+          },
+        },
+      },
+    }),
+  ],
 });

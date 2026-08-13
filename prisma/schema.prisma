@@ -13,32 +13,33 @@ datasource db {
 }
 
 model User {
-  id            String        @id
+  id            String       @id
   name          String
   email         String
-  emailVerified Boolean       @default(false)
+  emailVerified Boolean      @default(false)
   image         String?
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime      @updatedAt
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
   sessions      Session[]
   accounts      Account[]
-  ownedClasses  Class[]       @relation("ClassOwner")
-  classMembers  ClassMember[]
+  members       Member[]
+  invitations   Invitation[]
 
   @@unique([email])
   @@map("user")
 }
 
 model Session {
-  id        String   @id
-  expiresAt DateTime
-  token     String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  ipAddress String?
-  userAgent String?
-  userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id                   String   @id
+  expiresAt            DateTime
+  token                String
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+  ipAddress            String?
+  userAgent            String?
+  userId               String
+  user                 User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  activeOrganizationId String?
 
   @@unique([token])
   @@index([userId])
@@ -77,29 +78,48 @@ model Verification {
   @@map("verification")
 }
 
-model Class {
-  id          String        @id @default(cuid())
+model Organization {
+  id          String       @id
   name        String
-  code        String        @unique
+  slug        String       @unique
   description String?
-  ownerId     String
-  owner       User          @relation("ClassOwner", fields: [ownerId], references: [id], onDelete: Cascade)
-  members     ClassMember[]
-  createdAt   DateTime      @default(now())
-  updatedAt   DateTime      @updatedAt
+  logo        String?
+  metadata    String?
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  members     Member[]
+  invitations Invitation[]
 
-  @@index([name])
-  @@map("class")
+  @@map("organization")
 }
 
-model ClassMember {
-  userId    String
-  classId   String
-  role      String   @default("member")
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  class     Class    @relation(fields: [classId], references: [id], onDelete: Cascade)
-  createdAt DateTime @default(now())
+model Member {
+  id             String       @id
+  organizationId String
+  userId         String
+  role           String       @default("member")
+  createdAt      DateTime     @default(now())
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@id([userId, classId])
-  @@map("class_member")
+  @@index([organizationId])
+  @@index([userId])
+  @@map("member")
+}
+
+model Invitation {
+  id             String       @id
+  organizationId String
+  email          String
+  role           String
+  status         String       @default("pending")
+  expiresAt      DateTime
+  inviterId      String
+  createdAt      DateTime     @default(now())
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  inviter        User         @relation(fields: [inviterId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@index([email])
+  @@map("invitation")
 }

@@ -2,16 +2,22 @@ import { describe, it, expect, beforeEach, vi } from "vitest";
 
 vi.mock("@/lib/prisma", () => ({
   default: {
-    classMember: {
+    member: {
       findMany: vi.fn(),
       create: vi.fn(),
     },
-    class: {
+    organization: {
       findUnique: vi.fn(),
       findMany: vi.fn(),
-      create: vi.fn(),
     },
-    $transaction: vi.fn(),
+  },
+}));
+
+vi.mock("@/lib/auth", () => ({
+  auth: {
+    api: {
+      createOrganization: vi.fn(),
+    },
   },
 }));
 
@@ -24,6 +30,7 @@ vi.mock("@/app/lib/class-code", () => ({
 }));
 
 import prisma from "@/lib/prisma";
+import { auth } from "@/lib/auth";
 import { getSessionUser } from "@/app/lib/require-auth";
 import { generateClassCode } from "@/app/lib/class-code";
 import { GET as listGet, POST as createPost } from "@/app/api/classes/route";
@@ -44,23 +51,23 @@ describe("GET /api/classes", () => {
     expect(res.status).toBe(401);
   });
 
-  it("lists the classes the user belongs to", async () => {
-    vi.mocked(prisma.classMember.findMany).mockResolvedValue([
+  it("lists the classes (organizations) the user belongs to", async () => {
+    vi.mocked(prisma.member.findMany).mockResolvedValue([
       {
         userId: "u1",
         role: "owner",
-        classId: "c1",
+        organizationId: "c1",
         createdAt: new Date("2026-01-01"),
-        class: {
+        organization: {
           id: "c1",
           name: "Physics 101",
-          code: "ABC123",
+          slug: "ABC123",
           description: "Intro physics",
-          ownerId: "u1",
           createdAt: new Date("2026-01-01"),
-          updatedAt: new Date("2026-01-01"),
-          owner: { name: "Alice" },
-          members: [{ userId: "u1" }, { userId: "u2" }],
+          members: [
+            { userId: "u1", role: "owner", user: { name: "Alice" } },
+            { userId: "u2", role: "member", user: { name: "Bob" } },
+          ],
         },
       },
     ] as never);
@@ -82,7 +89,7 @@ describe("GET /api/classes", () => {
   });
 
   it("returns 500 on failure", async () => {
-    vi.mocked(prisma.classMember.findMany).mockRejectedValue(new Error("db down"));
+    vi.mocked(prisma.member.findMany).mockRejectedValue(new Error("db down"));
     const res = await listGet(new Request("http://localhost/api/classes"));
     expect(res.status).toBe(500);
     expect((await res.json()).error).toBe("db down");
@@ -132,21 +139,13 @@ describe("POST /api/classes", () => {
     expect(res.status).toBe(400);
   });
 
-  it("creates the class and owner membership in a transaction", async () => {
-    const created = {
+  it("creates the class via the organization plugin", async () => {
+    vi.mocked(auth.api.createOrganization).mockResolvedValue({
       id: "c1",
       name: "Chem 101",
-      code: "ABC123",
+      slug: "ABC123",
       description: null,
-      ownerId: "u1",
-      createdAt: new Date("2026-01-01"),
-      updatedAt: new Date("2026-01-01"),
-    };
-    vi.mocked(prisma.$transaction).mockImplementation(async (fn: (tx: typeof prisma) => Promise<unknown>) => {
-      return fn({ ...prisma, class: prisma.class } as never);
-    });
-    vi.mocked(prisma.class.findUnique).mockResolvedValue(null);
-    vi.mocked(prisma.class.create).mockResolvedValue(created as never);
+    } as never);
 
     const res = await createPost(
       new Request("http://localhost/api/classes", {
@@ -158,31 +157,46 @@ describe("POST /api/classes", () => {
     expect(await res.json()).toEqual({
       class: { id: "c1", name: "Chem 101", code: "ABC123", description: null },
     });
-    expect(prisma.class.create).toHaveBeenCalledWith({
-      data: { name: "Chem 101", code: "ABC123", description: null, ownerId: "u1" },
-    });
-    expect(prisma.classMember.create).toHaveBeenCalledWith({
-      data: { userId: "u1", classId: "c1", role: "owner" },
+    expect(auth.api.createOrganization).toHaveBeenCalledWith({
+      body: { name: "Chem 101", slug: "ABC123" },
+      headers: expect.any(Headers),
     });
   });
 
-  it("regenerates the code when a collision is found", async () => {
-    vi.mocked(prisma.$transaction).mockImplementation(async (fn: (tx: typeof prisma) => Promise<unknown>) => {
-      return fn({ ...prisma, class: prisma.class } as never);
-    });
+  it("includes the description in the organization payload", async () => {
+    vi.mocked(auth.api.createOrganization).mockResolvedValue({
+      id: "c1",
+      name: "Chem 101",
+      slug: "ABC123",
+      description: "Intro chem",
+    } as never);
+
+    const res = await createPost(
+      new Request("http://localhost/api/classes", {
+        method: "POST",
+        body: JSON.stringify({ name: "Chem 101", description: "Intro chem" }),
+      }),
+    );
+    expect(res.status).toBe(201);
+    expect(auth.api.createOrganization).toHaveBeenCalledWith(
+      expect.objectContaining({
+        body: { name: "Chem 101", slug: "ABC123", description: "Intro chem" },
+      }),
+    );
+  });
+
+  it("regenerates the slug when a collision is found", async () => {
+    vi.mocked(auth.api.createOrganization)
+      .mockRejectedValueOnce(new Error("Slug is already used"))
+      .mockResolvedValueOnce({
+        id: "c1",
+        name: "Chem",
+        slug: "XYZ789",
+        description: null,
+      } as never);
     vi.mocked(generateClassCode)
       .mockReturnValueOnce("ABC123")
       .mockReturnValueOnce("XYZ789");
-    vi.mocked(prisma.class.findUnique)
-      .mockResolvedValueOnce({ id: "taken" } as never)
-      .mockResolvedValueOnce(null);
-    vi.mocked(prisma.class.create).mockResolvedValue({
-      id: "c1",
-      name: "Chem",
-      code: "XYZ789",
-      description: null,
-      ownerId: "u1",
-    } as never);
 
     const res = await createPost(
       new Request("http://localhost/api/classes", {
@@ -191,19 +205,39 @@ describe("POST /api/classes", () => {
       }),
     );
     expect(res.status).toBe(201);
+    expect(await res.json()).toEqual({
+      class: { id: "c1", name: "Chem", code: "XYZ789", description: null },
+    });
     expect(generateClassCode).toHaveBeenCalledTimes(2);
   });
 
-  it("returns 500 on failure", async () => {
-    vi.mocked(prisma.$transaction).mockRejectedValue(new Error("db down"));
+  it("returns 400 when the plugin rejects after retries", async () => {
+    vi.mocked(auth.api.createOrganization).mockRejectedValue(
+      new Error("Some other plugin error"),
+    );
     const res = await createPost(
       new Request("http://localhost/api/classes", {
         method: "POST",
         body: JSON.stringify({ name: "Chem" }),
       }),
     );
-    expect(res.status).toBe(500);
-    expect((await res.json()).error).toBe("db down");
+    expect(res.status).toBe(400);
+    expect((await res.json()).error).toBe("Some other plugin error");
+  });
+
+  it("returns 400 when slug collisions exhaust retries", async () => {
+    vi.mocked(generateClassCode).mockImplementation(() => "ABC123");
+    vi.mocked(auth.api.createOrganization).mockRejectedValue(
+      new Error("Slug is already used"),
+    );
+    const res = await createPost(
+      new Request("http://localhost/api/classes", {
+        method: "POST",
+        body: JSON.stringify({ name: "Chem" }),
+      }),
+    );
+    expect(res.status).toBe(400);
+    expect(generateClassCode).toHaveBeenCalledTimes(10);
   });
 });
 
@@ -227,21 +261,20 @@ describe("GET /api/classes/search", () => {
     expect(res.status).toBe(400);
   });
 
-  it("searches by name or code excluding the user's own classes", async () => {
-    vi.mocked(prisma.classMember.findMany).mockResolvedValue([
-      { userId: "u1", classId: "mine" },
+  it("searches by name or code excluding the user's own organizations", async () => {
+    vi.mocked(prisma.member.findMany).mockResolvedValue([
+      { userId: "u1", organizationId: "mine" },
     ] as never);
-    vi.mocked(prisma.class.findMany).mockResolvedValue([
+    vi.mocked(prisma.organization.findMany).mockResolvedValue([
       {
         id: "c1",
         name: "Math 101",
-        code: "MATH1",
+        slug: "MATH1",
         description: null,
-        ownerId: "u2",
-        createdAt: new Date("2026-01-01"),
-        updatedAt: new Date("2026-01-01"),
-        owner: { name: "Bob" },
-        members: [{ userId: "u2" }, { userId: "u3" }],
+        members: [
+          { role: "owner", user: { name: "Bob" } },
+          { role: "member", user: { name: "Carol" } },
+        ],
       },
     ] as never);
 
@@ -258,7 +291,7 @@ describe("GET /api/classes/search", () => {
         memberCount: 2,
       },
     ]);
-    expect(prisma.class.findMany).toHaveBeenCalledWith(
+    expect(prisma.organization.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
         where: {
           AND: [
@@ -271,8 +304,21 @@ describe("GET /api/classes/search", () => {
     );
   });
 
+  it("does not exclude organizations when the user has none", async () => {
+    vi.mocked(prisma.member.findMany).mockResolvedValue([] as never);
+    vi.mocked(prisma.organization.findMany).mockResolvedValue([] as never);
+
+    const res = await searchGet(new Request("http://localhost/api/classes/search?q=math"));
+    expect(res.status).toBe(200);
+    expect(prisma.organization.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { AND: [{ OR: expect.any(Array) }] },
+      }),
+    );
+  });
+
   it("returns 500 on failure", async () => {
-    vi.mocked(prisma.classMember.findMany).mockRejectedValue(new Error("db down"));
+    vi.mocked(prisma.member.findMany).mockRejectedValue(new Error("db down"));
     const res = await searchGet(new Request("http://localhost/api/classes/search?q=math"));
     expect(res.status).toBe(500);
   });
@@ -287,8 +333,8 @@ describe("POST /api/classes/[id]/join", () => {
     expect(res.status).toBe(401);
   });
 
-  it("returns 404 when the class does not exist", async () => {
-    vi.mocked(prisma.class.findUnique).mockResolvedValue(null);
+  it("returns 404 when the organization does not exist", async () => {
+    vi.mocked(prisma.organization.findUnique).mockResolvedValue(null);
     const res = await joinPost(new Request("http://localhost/api/classes/nope/join"), {
       params: Promise.resolve({ id: "nope" }),
     });
@@ -296,10 +342,10 @@ describe("POST /api/classes/[id]/join", () => {
   });
 
   it("returns 409 when already a member", async () => {
-    vi.mocked(prisma.class.findUnique).mockResolvedValue({
+    vi.mocked(prisma.organization.findUnique).mockResolvedValue({
       id: "c1",
       name: "Math",
-      code: "MATH1",
+      slug: "MATH1",
       description: null,
       members: [{ userId: "u1" }],
     } as never);
@@ -307,18 +353,18 @@ describe("POST /api/classes/[id]/join", () => {
       params: Promise.resolve({ id: "c1" }),
     });
     expect(res.status).toBe(409);
-    expect(prisma.classMember.create).not.toHaveBeenCalled();
+    expect(prisma.member.create).not.toHaveBeenCalled();
   });
 
   it("adds the user as a member", async () => {
-    vi.mocked(prisma.class.findUnique).mockResolvedValue({
+    vi.mocked(prisma.organization.findUnique).mockResolvedValue({
       id: "c1",
       name: "Math",
-      code: "MATH1",
+      slug: "MATH1",
       description: "Numbers",
       members: [{ userId: "u2" }],
     } as never);
-    vi.mocked(prisma.classMember.create).mockResolvedValue({} as never);
+    vi.mocked(prisma.member.create).mockResolvedValue({} as never);
 
     const res = await joinPost(new Request("http://localhost/api/classes/c1/join"), {
       params: Promise.resolve({ id: "c1" }),
@@ -327,13 +373,20 @@ describe("POST /api/classes/[id]/join", () => {
     expect(await res.json()).toEqual({
       class: { id: "c1", name: "Math", code: "MATH1", description: "Numbers", role: "member" },
     });
-    expect(prisma.classMember.create).toHaveBeenCalledWith({
-      data: { userId: "u1", classId: "c1", role: "member" },
-    });
+    expect(prisma.member.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: {
+          id: expect.stringMatching(/^mem_[0-9a-f]{32}$/),
+          userId: "u1",
+          organizationId: "c1",
+          role: "member",
+        },
+      }),
+    );
   });
 
   it("returns 500 on failure", async () => {
-    vi.mocked(prisma.class.findUnique).mockRejectedValue(new Error("db down"));
+    vi.mocked(prisma.organization.findUnique).mockRejectedValue(new Error("db down"));
     const res = await joinPost(new Request("http://localhost/api/classes/c1/join"), {
       params: Promise.resolve({ id: "c1" }),
     });

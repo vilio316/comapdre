@@ -19,39 +19,43 @@ export async function GET(request: Request) {
   }
 
   try {
-    const myClassIds = (
-      await prisma.classMember.findMany({ where: { userId: user.id }, select: { classId: true } })
-    ).map((m) => m.classId);
+    const myOrgIds = (
+      await prisma.member.findMany({ where: { userId: user.id }, select: { organizationId: true } })
+    ).map((m) => m.organizationId);
 
-    const classes = await prisma.class.findMany({
+    const organizations = await prisma.organization.findMany({
       where: {
         AND: [
           {
             OR: [
               { name: { contains: query, mode: "insensitive" } },
-              { code: { contains: query, mode: "insensitive" } },
+              { slug: { contains: query, mode: "insensitive" } },
             ],
           },
-          ...(myClassIds.length ? [{ id: { notIn: myClassIds } }] : []),
+          ...(myOrgIds.length ? [{ id: { notIn: myOrgIds } }] : []),
         ],
       },
       include: {
-        owner: { select: { name: true } },
-        members: { select: { userId: true } },
+        members: {
+          include: { user: { select: { name: true } } },
+        },
       },
       orderBy: { name: "asc" },
       take: 20,
     });
 
     return NextResponse.json({
-      classes: classes.map((c) => ({
-        id: c.id,
-        name: c.name,
-        code: c.code,
-        description: c.description,
-        ownerName: c.owner.name,
-        memberCount: c.members.length,
-      })),
+      classes: organizations.map((o) => {
+        const owner = o.members.find((m) => m.role === "owner");
+        return {
+          id: o.id,
+          name: o.name,
+          code: o.slug,
+          description: o.description,
+          ownerName: owner?.user.name ?? null,
+          memberCount: o.members.length,
+        };
+      }),
     });
   } catch (error) {
     console.error("Failed to search classes:", error);

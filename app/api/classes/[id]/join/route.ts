@@ -11,28 +11,33 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   const { id } = await params;
 
   try {
-    const cls = await prisma.class.findUnique({
+    const organization = await prisma.organization.findUnique({
       where: { id },
       include: { members: { select: { userId: true } } },
     });
-    if (!cls) {
+    if (!organization) {
       return NextResponse.json({ error: "Class not found" }, { status: 404 });
     }
 
-    if (cls.members.some((m) => m.userId === user.id)) {
+    if (organization.members.some((m) => m.userId === user.id)) {
       return NextResponse.json({ error: "You are already a member of this class" }, { status: 409 });
     }
 
-    await prisma.classMember.create({
-      data: { userId: user.id, classId: cls.id, role: "member" },
+    await prisma.member.create({
+      data: {
+        id: `mem_${crypto.randomUUID().replace(/-/g, "")}`,
+        userId: user.id,
+        organizationId: organization.id,
+        role: "member",
+      },
     });
 
     return NextResponse.json({
       class: {
-        id: cls.id,
-        name: cls.name,
-        code: cls.code,
-        description: cls.description,
+        id: organization.id,
+        name: organization.name,
+        code: organization.slug,
+        description: organization.description,
         role: "member",
       },
     });
