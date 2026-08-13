@@ -3,6 +3,8 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import Link from "next/link";
 import { useNotifications } from "@/app/context/notification-context";
+import { FaX } from "react-icons/fa6";
+import { FaFileUpload } from "react-icons/fa";
 
 interface StoredDoc {
   id: string;
@@ -46,9 +48,9 @@ export default function CompilePage() {
   const [sources, setSources] = useState<string[]>([]);
 
   const [pdfJobId, setPdfJobId] = useState<string | null>(null);
-  const [pdfStatus, setPdfStatus] = useState<"idle" | "processing" | "done" | "failed">(
-    "idle",
-  );
+  const [pdfStatus, setPdfStatus] = useState<
+    "idle" | "processing" | "done" | "failed"
+  >("idle");
   const [pdfDoc, setPdfDoc] = useState<{ key: string; name: string } | null>(
     null,
   );
@@ -315,19 +317,7 @@ export default function CompilePage() {
                             className="shrink-0 rounded-md p-1 text-ink-muted transition-colors hover:bg-gray-100 hover:text-red-600"
                             aria-label={`Remove ${doc?.name ?? key}`}
                           >
-                            <svg
-                              className="h-4 w-4"
-                              fill="none"
-                              viewBox="0 0 24 24"
-                              stroke="currentColor"
-                              strokeWidth={2}
-                            >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                d="M6 18 18 6M6 6l12 12"
-                              />
-                            </svg>
+                            <FaX />
                           </button>
                         </div>
                       </li>
@@ -370,19 +360,7 @@ export default function CompilePage() {
                 e.target.value = "";
               }}
             />
-            <svg
-              className="mb-3 h-8 w-8 text-ink-muted sm:h-10 sm:w-10"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-              strokeWidth={1.5}
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M12 16.5V9.75m0 0 3 3m-3-3-3 3M6.75 19.5a4.5 4.5 0 0 1-1.41-8.775 5.25 5.25 0 0 1 10.233-2.33 3 3 0 0 1 3.758 3.848A3.752 3.752 0 0 1 18 19.5H6.75Z"
-              />
-            </svg>
+            <FaFileUpload />
             <p className="text-center text-sm text-ink-muted">
               <span className="font-medium text-deep">Tap to upload</span> or
               drag and drop
@@ -427,19 +405,7 @@ export default function CompilePage() {
                       className="shrink-0 text-ink-muted transition-colors hover:text-red-600"
                       aria-label={`Remove ${f.name}`}
                     >
-                      <svg
-                        className="h-4 w-4"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                        strokeWidth={2}
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          d="M6 18 18 6M6 6l12 12"
-                        />
-                      </svg>
+                      <FaX />
                     </button>
                   </li>
                 ))}
@@ -472,7 +438,7 @@ export default function CompilePage() {
           )}
         </div>
 
-        <div className="flex min-h-[200px] flex-col rounded-xl border border-gray-200 bg-surface p-4 sm:p-5">
+        <div className="flex min-h-50 flex-col rounded-xl border border-gray-200 bg-surface p-4 sm:p-5">
           {compiling && compileStatus === "processing" ? (
             <div className="flex flex-1 flex-col items-center justify-center gap-3">
               <div className="h-8 w-8 animate-spin rounded-full border-2 border-gray-300 border-t-gold" />

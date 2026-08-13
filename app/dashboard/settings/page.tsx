@@ -4,6 +4,7 @@ import { useRef, useState } from "react";
 import { authClient } from "@/lib/auth-client";
 import { useRouter } from "next/navigation";
 import { UserAvatar } from "@/app/components/user-avatar";
+import { FaImage } from "react-icons/fa6";
 
 export default function SettingsPage() {
   const { useSession } = authClient;
@@ -84,19 +85,7 @@ export default function SettingsPage() {
                 className="absolute -bottom-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full bg-deep text-white shadow transition-colors hover:bg-deep-light disabled:opacity-50"
                 aria-label="Change profile picture"
               >
-                <svg
-                  className="h-3.5 w-3.5"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                  strokeWidth={2}
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="m2.25 15.75 5.159-5.159a2.25 2.25 0 0 1 3.182 0l5.159 5.159m-1.5-1.5 1.409-1.409a2.25 2.25 0 0 1 3.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 0 0 1.5-1.5V6a1.5 1.5 0 0 0-1.5-1.5H3.75A1.5 1.5 0 0 0 2.25 6v12a1.5 1.5 0 0 0 1.5 1.5Zm10.5-11.25h.008v.008h-.008V8.25Zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Z"
-                  />
-                </svg>
+                <FaImage />
               </button>
               <input
                 ref={inputRef}
@@ -148,14 +137,24 @@ export default function SettingsPage() {
         </section>
 
         <section className="rounded-xl border border-gray-200 bg-surface p-5 shadow-sm">
-          <h2 className="mb-4 text-base font-semibold text-deep">Preferences</h2>
+          <h2 className="mb-4 text-base font-semibold text-deep">
+            Preferences
+          </h2>
           <div className="space-y-3">
             <label className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-deep">Email notifications</p>
-                <p className="text-xs text-ink-muted">Receive updates about your documents</p>
+                <p className="text-sm font-medium text-deep">
+                  Email notifications
+                </p>
+                <p className="text-xs text-ink-muted">
+                  Receive updates about your documents
+                </p>
               </div>
-              <input type="checkbox" defaultChecked className="h-4 w-4 accent-gold" />
+              <input
+                type="checkbox"
+                defaultChecked
+                className="h-4 w-4 accent-gold"
+              />
             </label>
             <label className="flex items-center justify-between">
               <div>

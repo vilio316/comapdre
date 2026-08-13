@@ -5,6 +5,8 @@ import Link from "next/link";
 import SelectedFileList from "@/app/components/selected-file-list";
 import McqTabs from "@/app/components/mcq-tabs";
 import { useMcq } from "@/app/context/mcq-context";
+import { FaCheck, FaX } from "react-icons/fa6";
+import { FaFileUpload } from "react-icons/fa";
 
 interface StoredDoc {
   id: string;
@@ -176,19 +178,7 @@ export default function MCQPage() {
                             className="shrink-0 rounded-md p-1 text-ink-muted transition-colors hover:bg-gray-100 hover:text-red-600"
                             aria-label={`Remove ${doc?.name ?? key}`}
                           >
-                            <svg
-                              className="h-4 w-4"
-                              fill="none"
-                              viewBox="0 0 24 24"
-                              stroke="currentColor"
-                              strokeWidth={2}
-                            >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                d="M6 18 18 6M6 6l12 12"
-                              />
-                            </svg>
+                            <FaX />
                           </button>
                         </div>
                       </li>
@@ -256,19 +246,7 @@ export default function MCQPage() {
               </div>
             ) : (
               <>
-                <svg
-                  className="mb-3 h-8 w-8 text-ink-muted sm:h-10 sm:w-10"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                  strokeWidth={1.5}
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5m-13.5-9L12 3m0 0 4.5 4.5M12 3v13.5"
-                  />
-                </svg>
+                <FaFileUpload className="md:w-10 md:h-10 h-6 w-6 my-2" />
                 <p className="text-center text-sm text-ink-muted">
                   <span className="font-medium text-deep">Tap to upload</span>{" "}
                   or drag and drop
@@ -331,19 +309,7 @@ export default function MCQPage() {
           {done && doneKey && (
             <div className="mt-4 flex flex-col items-center gap-3 rounded-xl border border-green-200 bg-green-50 px-4 py-5">
               <div className="flex h-10 w-10 items-center justify-center rounded-full bg-green-100">
-                <svg
-                  className="h-5 w-5 text-green-700"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                  strokeWidth={2}
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="m4.5 12.75 6 6 9-13.5"
-                  />
-                </svg>
+                <FaCheck className="fill-green-700" />
               </div>
               <p className="text-sm font-semibold text-deep">
                 Questions ready!

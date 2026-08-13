@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useRef } from "react";
+import { FaFileUpload } from "react-icons/fa";
+import { FaX, FaFile, FaPlus, FaCheck } from "react-icons/fa6";
 
 const ALLOWED_EXTENSIONS = [".pdf", ".docx", ".jpg", ".jpeg", ".png"];
 const MAX_SIZE = 30 * 1024 * 1024;
@@ -144,19 +146,7 @@ export default function UploadPipeline({
           onClick={onCancel}
           className="rounded-md p-1 text-ink-muted hover:bg-gray-100 hover:text-deep transition-colors"
         >
-          <svg
-            className="h-5 w-5"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-            strokeWidth={2}
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              d="M6 18 18 6M6 6l12 12"
-            />
-          </svg>
+          <FaX />
         </button>
       </div>
 
@@ -200,19 +190,7 @@ export default function UploadPipeline({
                   onClick={(e) => e.stopPropagation()}
                 >
                   <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-deep/5">
-                    <svg
-                      className="h-6 w-6 text-deep"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                      strokeWidth={1.5}
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z"
-                      />
-                    </svg>
+                    <FaFile size={"1.5rem"} />
                   </div>
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-medium text-deep">
@@ -229,37 +207,13 @@ export default function UploadPipeline({
                     }}
                     className="rounded-md p-1 text-ink-muted hover:bg-gray-100 hover:text-red-500"
                   >
-                    <svg
-                      className="h-4 w-4"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                      strokeWidth={2}
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        d="M6 18 18 6M6 6l12 12"
-                      />
-                    </svg>
+                    <FaX />
                   </button>
                 </div>
               ) : (
                 <>
                   <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-full bg-deep/5">
-                    <svg
-                      className="h-5 w-5 text-deep"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                      strokeWidth={1.5}
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5m-13.5-9L12 3m0 0 4.5 4.5M12 3v13.5"
-                      />
-                    </svg>
+                    <FaFileUpload />
                   </div>
                   <p className="text-sm text-ink-muted">
                     <span className="font-medium text-deep">
@@ -356,19 +310,7 @@ export default function UploadPipeline({
           <div className="space-y-4">
             <div className="flex items-center gap-3 rounded-lg bg-green-50 p-3">
               <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-green-100">
-                <svg
-                  className="h-4 w-4 text-green-600"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                  strokeWidth={2.5}
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="m4.5 12.75 6 6 9-13.5"
-                  />
-                </svg>
+                <FaCheck className="fill-green-700" />
               </div>
               <div className="min-w-0 flex-1">
                 <p className="text-sm font-medium text-green-800">
@@ -392,19 +334,7 @@ export default function UploadPipeline({
                       onClick={() => setTags(tags.filter((x) => x !== t))}
                       className="text-gold/60 hover:text-gold"
                     >
-                      <svg
-                        className="h-3 w-3"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                        strokeWidth={2.5}
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          d="M6 18 18 6M6 6l12 12"
-                        />
-                      </svg>
+                      <FaPlus />
                     </button>
                   </span>
                 ))}

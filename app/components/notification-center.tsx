@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useNotifications } from "@/app/context/notification-context";
+import { FaBell } from "react-icons/fa6";
 
 const iconMap: Record<string, string> = {
   success: "✓",
@@ -30,7 +31,8 @@ function formatTime(ts: number): string {
 }
 
 export function NotificationCenter() {
-  const { history, unreadCount, markAllRead, markAsRead, clearHistory } = useNotifications();
+  const { history, unreadCount, markAllRead, markAsRead, clearHistory } =
+    useNotifications();
   const [open, setOpen] = useState(false);
   const panelRef = useRef<HTMLDivElement>(null);
   const pathname = usePathname();
@@ -64,19 +66,7 @@ export function NotificationCenter() {
         className="relative rounded-md p-1.5 text-blue-light transition-colors hover:bg-deep-light hover:text-gold-light"
         aria-label={`Notifications${unreadCount > 0 ? ` (${unreadCount} unread)` : ""}`}
       >
-        <svg
-          className="h-5 w-5"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke="currentColor"
-          strokeWidth={1.5}
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            d="M14.857 17.082a23.848 23.848 0 0 0 5.454-1.31A8.967 8.967 0 0 1 18 9.75V9A6 6 0 0 0 6 9v.75a8.967 8.967 0 0 1-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 0 1-5.714 0m5.714 0a3 3 0 1 1-5.714 0"
-          />
-        </svg>
+        <FaBell />
         {unreadCount > 0 && (
           <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-600 px-1 text-[10px] font-bold text-white">
             {unreadCount > 99 ? "99+" : unreadCount}
@@ -108,7 +98,9 @@ export function NotificationCenter() {
 
           {history.length === 0 ? (
             <div className="px-4 py-10 text-center">
-              <p className="text-sm font-medium text-deep">No notifications yet</p>
+              <p className="text-sm font-medium text-deep">
+                No notifications yet
+              </p>
               <p className="mt-1 text-xs text-ink-muted">
                 Status updates from OCR, MCQ, and Compile will appear here.
               </p>
@@ -131,7 +123,9 @@ export function NotificationCenter() {
                     <div className="min-w-0 flex-1">
                       <p className="text-sm font-medium text-deep">{n.title}</p>
                       {n.message && (
-                        <p className="mt-0.5 text-xs text-ink-muted">{n.message}</p>
+                        <p className="mt-0.5 text-xs text-ink-muted">
+                          {n.message}
+                        </p>
                       )}
                       <p className="mt-0.5 text-[10px] text-ink-muted">
                         {formatTime(n.createdAt)}
@@ -152,7 +146,11 @@ export function NotificationCenter() {
                         className="shrink-0 text-ink-muted transition-colors hover:text-deep"
                         aria-label={`Mark ${n.title} as read`}
                       >
-                        <svg className="h-3.5 w-3.5" fill="currentColor" viewBox="0 0 24 24">
+                        <svg
+                          className="h-3.5 w-3.5"
+                          fill="currentColor"
+                          viewBox="0 0 24 24"
+                        >
                           <circle cx="12" cy="12" r="5" />
                         </svg>
                       </button>
