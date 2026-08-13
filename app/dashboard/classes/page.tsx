@@ -1,11 +1,14 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Link from "next/link";
 import {
   FaMagnifyingGlass,
   FaUserGroup,
   FaCode,
   FaPlus,
+  FaEnvelope,
+  FaArrowRight,
 } from "react-icons/fa6";
 
 interface MyClass {
@@ -26,6 +29,19 @@ interface SearchResult {
   description: string | null;
   classRepName: string;
   memberCount: number;
+}
+
+interface PendingInvitation {
+  id: string;
+  email: string;
+  role: string;
+  status: string;
+  expiresAt: string;
+  class: {
+    id: string;
+    name: string;
+    code: string;
+  };
 }
 
 const roleLabels: Record<string, string> = {
@@ -52,6 +68,9 @@ export default function ClassesPage() {
   const [newDescription, setNewDescription] = useState("");
   const [creating, setCreating] = useState(false);
 
+  const [pendingInvites, setPendingInvites] = useState<PendingInvitation[]>([]);
+  const [invitesLoading, setInvitesLoading] = useState(true);
+
   useEffect(() => {
     fetch("/api/classes")
       .then((r) => {
@@ -64,6 +83,21 @@ export default function ClassesPage() {
       })
       .catch(() => setError("Failed to load your classes"))
       .finally(() => setLoading(false));
+  }, []);
+
+  useEffect(() => {
+    fetch("/api/classes/invitations")
+      .then((r) => {
+        if (!r.ok) throw new Error(`Request failed (${r.status})`);
+        return r.json();
+      })
+      .then((data) => {
+        if (data.invitations) setPendingInvites(data.invitations);
+      })
+      .catch(() => {
+        // ignore: invitations are optional
+      })
+      .finally(() => setInvitesLoading(false));
   }, []);
 
   useEffect(() => {
@@ -304,6 +338,38 @@ export default function ClassesPage() {
         </div>
       )}
 
+      {!invitesLoading && pendingInvites.length > 0 && (
+        <div className="mb-5 rounded-xl border border-gold/30 bg-gold/5 p-4 shadow-sm">
+          <h2 className="mb-3 flex items-center gap-2 text-sm font-semibold text-deep">
+            <FaEnvelope className="text-gold" /> Invitations for you
+          </h2>
+          <div className="space-y-2">
+            {pendingInvites.map((inv) => (
+              <div
+                key={inv.id}
+                className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-gray-200 bg-surface p-3"
+              >
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-medium text-deep">
+                    {inv.class.name}
+                  </p>
+                  <p className="text-[11px] text-ink-muted">
+                    Invited as {roleLabel(inv.role)} &middot; code{" "}
+                    <span className="font-medium text-gold">{inv.class.code}</span>
+                  </p>
+                </div>
+                <Link
+                  href={`/dashboard/classes/invite/${inv.id}`}
+                  className="inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-gold px-3 py-1.5 text-xs font-medium text-deep transition-colors hover:bg-gold-light"
+                >
+                  Review <FaArrowRight />
+                </Link>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       <div className="mb-4">
         <h2 className="text-base font-bold text-deep">My Classes</h2>
       </div>
@@ -325,8 +391,9 @@ export default function ClassesPage() {
       ) : (
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {myClasses.map((cls) => (
-            <div
+            <Link
               key={cls.id}
+              href={`/dashboard/classes/${cls.id}`}
               className="flex flex-col rounded-xl border border-gray-200 bg-surface p-4 shadow-sm transition-all hover:border-gold/40 hover:shadow-md"
             >
               <div className="mb-2 flex items-center justify-between gap-2">
@@ -351,7 +418,7 @@ export default function ClassesPage() {
                   <FaCode /> {cls.code}
                 </span>
               </div>
-            </div>
+            </Link>
           ))}
         </div>
       )}

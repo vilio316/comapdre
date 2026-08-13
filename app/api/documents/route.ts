@@ -11,7 +11,9 @@ function parseTags(raw: string | null): string[] {
   if (!raw) return [];
   try {
     const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed.filter((t) => typeof t === "string") : [];
+    return Array.isArray(parsed)
+      ? parsed.filter((t) => typeof t === "string")
+      : [];
   } catch {
     return [];
   }
@@ -42,7 +44,10 @@ export async function GET(request: Request) {
   } catch (error) {
     console.error("Failed to list documents:", error);
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Failed to list documents" },
+      {
+        error:
+          error instanceof Error ? error.message : "Failed to list documents",
+      },
       { status: 500 },
     );
   }

@@ -24,6 +24,7 @@ export const admin = ac.newRole({
 
 export const classRep = ac.newRole({
   class: ["create", "read", "update", "delete", "compile"],
+  invitation: ["create", "cancel"],
 });
 
 export const member = ac.newRole({
