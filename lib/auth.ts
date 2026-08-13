@@ -27,6 +27,7 @@ export const auth = betterAuth({
     organization({
       ac,
       roles,
+      creatorRole: "class_rep",
       schema: {
         organization: {
           additionalFields: {

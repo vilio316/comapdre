@@ -80,8 +80,9 @@ export async function getMcqJobStatus(jobId: string) {
 export async function createCompileJob(
   files: CompileLocalFile[],
   documentKeys: string[] = [],
+  organizationId?: string,
 ): Promise<{ id: string }> {
-  const job = await compileQueue.add("compile", { files, documentKeys });
+  const job = await compileQueue.add("compile", { files, documentKeys, organizationId });
   return { id: job.id! };
 }
 
@@ -106,8 +107,10 @@ export async function getCompileJobStatus(jobId: string) {
 export async function createPdfJob(
   text: string,
   fileName: string,
+  organizationId?: string,
+  userId?: string,
 ): Promise<{ id: string }> {
-  const job = await pdfQueue.add("compile-pdf", { text, fileName });
+  const job = await pdfQueue.add("compile-pdf", { text, fileName, organizationId, userId });
   return { id: job.id! };
 }
 

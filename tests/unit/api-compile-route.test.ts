@@ -10,14 +10,15 @@ vi.mock("fs/promises", () => ({
   default: { writeFile: vi.fn(async () => undefined) },
 }));
 
-vi.mock("@/lib/auth", () => ({
-  auth: { api: { getSession: vi.fn() } },
+vi.mock("@/app/lib/org-membership", () => ({
+  getOrgContext: vi.fn(),
+  canCompile: vi.fn(),
 }));
 
 import { POST as compilePost } from "@/app/api/compile/route";
 import { POST as pdfPost } from "@/app/api/compile/pdf/route";
 import { createCompileJob, createPdfJob } from "@/app/lib/job-manager";
-import { auth } from "@/lib/auth";
+import { getOrgContext, canCompile } from "@/app/lib/org-membership";
 
 function buildRequest(fields: Record<string, string | File | string[]>) {
   const fd = new FormData();
@@ -35,19 +36,30 @@ function pngFile(name = "a.png") {
   return new File([new Uint8Array(10)], name, { type: "image/png" });
 }
 
+const orgContext = {
+  user: { id: "u1", name: "Alice", email: "a@b.c" },
+  organizationId: "org-1",
+  role: "class_rep",
+};
+
 beforeEach(() => {
   vi.clearAllMocks();
-  vi.mocked(auth.api.getSession).mockResolvedValue({
-    user: { id: "u1", email: "a@b.c" },
-    session: {},
-  } as never);
+  vi.mocked(getOrgContext).mockResolvedValue(orgContext);
+  vi.mocked(canCompile).mockReturnValue(true);
 });
 
 describe("POST /api/compile", () => {
   it("returns 401 when unauthenticated", async () => {
-    vi.mocked(auth.api.getSession).mockResolvedValue(null);
+    vi.mocked(getOrgContext).mockResolvedValue(null);
     const res = await compilePost(buildRequest({ keys: ["notes.pdf"] }));
     expect(res.status).toBe(401);
+    expect(createCompileJob).not.toHaveBeenCalled();
+  });
+
+  it("returns 403 for members without compile permission", async () => {
+    vi.mocked(canCompile).mockReturnValue(false);
+    const res = await compilePost(buildRequest({ keys: ["notes.pdf"] }));
+    expect(res.status).toBe(403);
     expect(createCompileJob).not.toHaveBeenCalled();
   });
 
@@ -71,16 +83,17 @@ describe("POST /api/compile", () => {
     expect((await res.json()).error).toContain("MB limit");
   });
 
-  it("writes uploaded files and enqueues a compile job", async () => {
+  it("writes uploaded files and enqueues a compile job scoped to the org", async () => {
     vi.mocked(createCompileJob).mockResolvedValue({ id: "compile-job" });
     const res = await compilePost(
       buildRequest({ files: [pngFile("a.png")], keys: ["notes.pdf"] }),
     );
     expect(await res.json()).toEqual({ jobId: "compile-job" });
     expect(createCompileJob).toHaveBeenCalledTimes(1);
-    const [tempFiles, keys] = createCompileJob.mock.calls[0] as [unknown[], string[]];
+    const [tempFiles, keys, organizationId] = createCompileJob.mock.calls[0] as [unknown[], string[], string];
     expect(tempFiles).toHaveLength(1);
     expect(keys).toEqual(["notes.pdf"]);
+    expect(organizationId).toBe("org-1");
   });
 
   it("returns 500 when queueing fails", async () => {
@@ -96,13 +109,20 @@ describe("POST /api/compile/pdf", () => {
     return { json: () => Promise.resolve(body) };
   }
 
-  it("enqueues a pdf job for valid text", async () => {
+  it("returns 403 for members without compile permission", async () => {
+    vi.mocked(canCompile).mockReturnValue(false);
+    const res = await pdfPost(jsonRequest({ text: "body", fileName: "x.pdf" }) as never);
+    expect(res.status).toBe(403);
+    expect(createPdfJob).not.toHaveBeenCalled();
+  });
+
+  it("enqueues a pdf job for valid text with org scoping", async () => {
     vi.mocked(createPdfJob).mockResolvedValue({ id: "pdf-job" });
     const res = await pdfPost(
       jsonRequest({ text: "# Title\n\nBody", fileName: "notes.pdf" }) as never,
     );
     expect(await res.json()).toEqual({ jobId: "pdf-job" });
-    expect(createPdfJob).toHaveBeenCalledWith("# Title\n\nBody", "notes.pdf");
+    expect(createPdfJob).toHaveBeenCalledWith("# Title\n\nBody", "notes.pdf", "org-1", "u1");
   });
 
   it("trims the file name before enqueuing", async () => {
@@ -110,7 +130,7 @@ describe("POST /api/compile/pdf", () => {
     await pdfPost(
       jsonRequest({ text: "body", fileName: "  notes.pdf  " }) as never,
     );
-    expect(createPdfJob).toHaveBeenCalledWith("body", "notes.pdf");
+    expect(createPdfJob).toHaveBeenCalledWith("body", "notes.pdf", "org-1", "u1");
   });
 
   it("returns 400 for empty text", async () => {

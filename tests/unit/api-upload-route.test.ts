@@ -10,11 +10,26 @@ vi.mock("@/lib/auth", () => ({
   auth: { api: { getSession: vi.fn(), updateUser: vi.fn() } },
 }));
 
+vi.mock("@/app/lib/org-membership", () => ({
+  getOrgContext: vi.fn(),
+  canCompile: vi.fn(),
+}));
+
+vi.mock("@/lib/prisma", () => ({
+  default: {
+    document: {
+      create: vi.fn(),
+    },
+  },
+}));
+
 import { POST as uploadPost } from "@/app/api/upload/route";
 import { POST as avatarPost } from "@/app/api/upload/avatar/route";
 import { GET as avatarGet } from "@/app/api/avatar/route";
 import { uploadToR2, deleteObjectFromR2, getObjectSignedUrl } from "@/lib/cloudflareHelper";
 import { auth } from "@/lib/auth";
+import { getOrgContext } from "@/app/lib/org-membership";
+import prisma from "@/lib/prisma";
 
 function fdWithFile(file?: File, tags?: string) {
   const fd = new FormData();
@@ -28,14 +43,22 @@ const pngFile = () => new File([new Uint8Array(100)], "a.png", { type: "image/pn
 
 const authedUser = { user: { id: "u1", email: "a@b.c" }, session: {} } as never;
 
+const orgContext = {
+  user: { id: "u1", name: "Alice", email: "a@b.c" },
+  organizationId: "org-1",
+  role: "member",
+};
+
 beforeEach(() => {
   vi.clearAllMocks();
   vi.mocked(auth.api.getSession).mockResolvedValue(authedUser);
+  vi.mocked(getOrgContext).mockResolvedValue(orgContext);
+  vi.mocked(prisma.document.create).mockResolvedValue({} as never);
 });
 
 describe("POST /api/upload", () => {
   it("returns 401 when unauthenticated", async () => {
-    vi.mocked(auth.api.getSession).mockResolvedValue(null);
+    vi.mocked(getOrgContext).mockResolvedValue(null);
     const res = await uploadPost(fdWithFile(pdfFile()) as never);
     expect(res.status).toBe(401);
     expect(uploadToR2).not.toHaveBeenCalled();
@@ -47,17 +70,30 @@ describe("POST /api/upload", () => {
     expect(await res.json()).toEqual({ error: "No file provided" });
   });
 
-  it("uploads a file with its detected mime type", async () => {
-    vi.mocked(uploadToR2).mockResolvedValue({ key: "notes.pdf" });
+  it("uploads a file with an org-prefixed key and records the document", async () => {
+    vi.mocked(uploadToR2).mockResolvedValue({ key: "org-1/notes.pdf" });
     const res = await uploadPost(fdWithFile(pdfFile()) as never);
-    expect(await res.json()).toEqual({ success: true });
-    expect(uploadToR2).toHaveBeenCalledWith(expect.any(Buffer), "notes.pdf", "application/pdf", undefined);
+    expect(await res.json()).toEqual({ success: true, key: "org-1/notes.pdf" });
+    expect(uploadToR2).toHaveBeenCalledWith(expect.any(Buffer), "org-1/notes.pdf", "application/pdf", undefined);
+    expect(prisma.document.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        key: "org-1/notes.pdf",
+        name: "notes.pdf",
+        type: "PDF",
+        size: 100,
+        organizationId: "org-1",
+        userId: "u1",
+      }),
+    });
   });
 
   it("parses and forwards tags", async () => {
-    vi.mocked(uploadToR2).mockResolvedValue({ key: "notes.pdf" });
+    vi.mocked(uploadToR2).mockResolvedValue({ key: "org-1/notes.pdf" });
     await uploadPost(fdWithFile(pdfFile(), '["biology","notes"]') as never);
     expect(uploadToR2.mock.calls[0][3]).toEqual(["biology", "notes"]);
+    expect(prisma.document.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({ tags: '["biology","notes"]' }),
+    });
   });
 
   it("returns 500 when upload fails", async () => {

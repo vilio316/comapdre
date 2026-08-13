@@ -1,14 +1,20 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createPdfJob } from "@/app/lib/job-manager";
-import { getSessionUser } from "@/app/lib/require-auth";
+import { getOrgContext, canCompile } from "@/app/lib/org-membership";
 
 const MAX_PDF_TEXT_BYTES = 5 * 1024 * 1024;
 
 export async function POST(request: NextRequest) {
   try {
-    const user = await getSessionUser(request.headers);
-    if (!user) {
+    const ctx = await getOrgContext(request.headers);
+    if (!ctx) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    if (!canCompile(ctx.role)) {
+      return NextResponse.json(
+        { error: "Only class representatives can save compiled documents" },
+        { status: 403 },
+      );
     }
 
     const body = await request.json();
@@ -29,7 +35,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { id } = await createPdfJob(text, fileName);
+    const { id } = await createPdfJob(text, fileName, ctx.organizationId, ctx.user.id);
     return NextResponse.json({ jobId: id });
   } catch (error) {
     console.error("PDF submission failed:", error);

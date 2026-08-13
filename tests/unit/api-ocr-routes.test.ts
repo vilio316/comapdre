@@ -24,6 +24,19 @@ vi.mock("@/lib/auth", () => ({
   auth: { api: { getSession: vi.fn() } },
 }));
 
+vi.mock("@/app/lib/org-membership", () => ({
+  getOrgContext: vi.fn(),
+  canCompile: vi.fn(),
+}));
+
+vi.mock("@/lib/prisma", () => ({
+  default: {
+    document: {
+      findFirst: vi.fn(),
+    },
+  },
+}));
+
 import { POST as ocrPost } from "@/app/api/ocr/route";
 import { GET as ocrStatusGet } from "@/app/api/ocr/status/[jobId]/route";
 import { POST as docOcrPost } from "@/app/api/documents/[key]/ocr/route";
@@ -31,6 +44,8 @@ import { getObjectSignedUrl } from "@/lib/cloudflareHelper";
 import { createLocalOcrJob, createOnlineOcrJob, getJobStatus, getCachedOcrResult } from "@/app/lib/job-manager";
 import { ocrQueue } from "@/app/lib/ocr-queue";
 import { auth } from "@/lib/auth";
+import { getOrgContext } from "@/app/lib/org-membership";
+import prisma from "@/lib/prisma";
 
 function fileFormData(files: { name: string; content: string; type: string }[]) {
   const fd = new FormData();
@@ -44,17 +59,24 @@ function postRequest(fd: FormData): { formData: () => Promise<FormData> } {
   return { formData: () => Promise.resolve(fd) };
 }
 
+const orgContext = {
+  user: { id: "u1", name: "Alice", email: "a@b.c" },
+  organizationId: "org-1",
+  role: "member",
+};
+
 beforeEach(() => {
   vi.clearAllMocks();
   vi.mocked(auth.api.getSession).mockResolvedValue({
     user: { id: "u1", email: "a@b.c" },
     session: {},
   } as never);
+  vi.mocked(getOrgContext).mockResolvedValue(orgContext);
 });
 
 describe("POST /api/ocr", () => {
   it("returns 401 when unauthenticated", async () => {
-    vi.mocked(auth.api.getSession).mockResolvedValue(null);
+    vi.mocked(getOrgContext).mockResolvedValue(null);
     const res = await ocrPost(
       postRequest(fileFormData([{ name: "photo.png", content: "abc", type: "image/png" }])),
     );
@@ -142,6 +164,40 @@ describe("GET /api/ocr/status/[jobId]", () => {
 });
 
 describe("POST /api/documents/[key]/ocr", () => {
+  const docRow = (overrides: Record<string, unknown> = {}) => ({
+    id: "d1",
+    key: "notes.pdf",
+    name: "notes.pdf",
+    type: "application/pdf",
+    size: 100,
+    tags: null,
+    organizationId: "org-1",
+    userId: "u1",
+    createdAt: new Date(),
+    ...overrides,
+  });
+
+  beforeEach(() => {
+    vi.mocked(prisma.document.findFirst).mockResolvedValue(docRow() as never);
+  });
+
+  it("returns 401 when the user has no active organization", async () => {
+    vi.mocked(getOrgContext).mockResolvedValue(null);
+    const res = await docOcrPost({ formData: () => Promise.resolve(new FormData()) }, {
+      params: Promise.resolve({ key: "a.pdf" }),
+    });
+    expect(res.status).toBe(401);
+  });
+
+  it("returns 404 when the document is not in the active organization", async () => {
+    vi.mocked(prisma.document.findFirst).mockResolvedValue(null);
+    const res = await docOcrPost({ formData: () => Promise.resolve(new FormData()) }, {
+      params: Promise.resolve({ key: "a.pdf" }),
+    });
+    expect(res.status).toBe(404);
+    expect((await res.json()).success).toBe(false);
+  });
+
   it("returns a cached sanitized result when present", async () => {
     vi.mocked(getCachedOcrResult).mockResolvedValue("raw $x$ math");
     const res = await docOcrPost({ formData: () => Promise.resolve(new FormData()) }, {

@@ -14,7 +14,7 @@ interface MyClass {
   code: string;
   description: string | null;
   role: string;
-  ownerName: string;
+  classRepName: string;
   memberCount: number;
   createdAt: string;
 }
@@ -24,7 +24,7 @@ interface SearchResult {
   name: string;
   code: string;
   description: string | null;
-  ownerName: string;
+  classRepName: string;
   memberCount: number;
 }
 
@@ -105,7 +105,7 @@ export default function ClassesPage() {
         code: data.class.code,
         description: data.class.description,
         role: data.class.role,
-        ownerName: cls.ownerName,
+        classRepName: cls.classRepName,
         memberCount: cls.memberCount + 1,
         createdAt: new Date().toISOString(),
       };
@@ -142,8 +142,8 @@ export default function ClassesPage() {
         name: data.class.name,
         code: data.class.code,
         description: data.class.description,
-        role: "owner",
-        ownerName: "",
+        role: "class_rep",
+        classRepName: "",
         memberCount: 1,
         createdAt: new Date().toISOString(),
       };
@@ -251,7 +251,7 @@ export default function ClassesPage() {
                         {cls.name}
                       </p>
                       <p className="text-[11px] text-ink-muted">
-                        {cls.ownerName} &middot; {cls.memberCount} member
+                        {cls.classRepName} &middot; {cls.memberCount} member
                         {cls.memberCount === 1 ? "" : "s"} &middot;{" "}
                         <span className="inline-flex items-center gap-1 font-medium text-gold">
                           <FaCode /> {cls.code}

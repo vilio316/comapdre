@@ -1,6 +1,7 @@
 import { Queue, Worker, Job } from "bullmq";
 import redis from "./redis";
 import { uploadToR2 } from "@/lib/cloudflareHelper";
+import prisma from "@/lib/prisma";
 import PDFDocument from "pdfkit";
 
 const PDF_QUEUE = "compile-pdf";
@@ -29,6 +30,8 @@ export interface PdfJobResult {
 interface PdfJobData {
   text: string;
   fileName: string;
+  organizationId?: string;
+  userId?: string;
 }
 
 function sanitizeFileName(input: string): string {
@@ -106,11 +109,29 @@ export function startPdfWorker() {
 
       const name = sanitizeFileName(data.fileName);
       const buffer = await renderMarkdownToPdf(data.text);
-      await uploadToR2(buffer, name, "application/pdf", ["compiled"]);
+
+      const orgId = data.organizationId;
+      const key = orgId ? `${orgId}/${name}` : name;
+      await uploadToR2(buffer, key, "application/pdf", ["compiled"]);
+
+      if (orgId && data.userId) {
+        await prisma.document.create({
+          data: {
+            id: crypto.randomUUID(),
+            key,
+            name,
+            type: "PDF",
+            size: buffer.byteLength,
+            tags: JSON.stringify(["compiled"]),
+            organizationId: orgId,
+            userId: data.userId,
+          },
+        });
+      }
 
       return {
         doc: {
-          key: name,
+          key,
           name,
           type: "pdf",
           size: buffer.byteLength,

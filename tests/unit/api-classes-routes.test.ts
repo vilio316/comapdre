@@ -65,7 +65,7 @@ describe("GET /api/classes", () => {
           description: "Intro physics",
           createdAt: new Date("2026-01-01"),
           members: [
-            { userId: "u1", role: "owner", user: { name: "Alice" } },
+            { userId: "u1", role: "class_rep", user: { name: "Alice" } },
             { userId: "u2", role: "member", user: { name: "Bob" } },
           ],
         },
@@ -82,7 +82,7 @@ describe("GET /api/classes", () => {
       code: "ABC123",
       description: "Intro physics",
       role: "owner",
-      ownerName: "Alice",
+      classRepName: "Alice",
       memberCount: 2,
       createdAt: "2026-01-01T00:00:00.000Z",
     });
@@ -272,7 +272,7 @@ describe("GET /api/classes/search", () => {
         slug: "MATH1",
         description: null,
         members: [
-          { role: "owner", user: { name: "Bob" } },
+          { role: "class_rep", user: { name: "Bob" } },
           { role: "member", user: { name: "Carol" } },
         ],
       },
@@ -287,7 +287,7 @@ describe("GET /api/classes/search", () => {
         name: "Math 101",
         code: "MATH1",
         description: null,
-        ownerName: "Bob",
+        classRepName: "Bob",
         memberCount: 2,
       },
     ]);

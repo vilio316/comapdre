@@ -46,13 +46,13 @@ export async function GET(request: Request) {
 
     return NextResponse.json({
       classes: organizations.map((o) => {
-        const owner = o.members.find((m) => m.role === "owner");
+        const creator = o.members.find((m) => m.role === "class_rep");
         return {
           id: o.id,
           name: o.name,
           code: o.slug,
           description: o.description,
-          ownerName: owner?.user.name ?? null,
+          classRepName: creator?.user.name ?? null,
           memberCount: o.members.length,
         };
       }),

@@ -3,7 +3,8 @@ import { getObjectSignedUrl } from "@/lib/cloudflareHelper";
 import { createOnlineOcrJob, getCachedOcrResult } from "@/app/lib/job-manager";
 import { ocrQueue } from "@/app/lib/ocr-queue";
 import { sanitizeText } from "@/app/lib/text-sanitize";
-import { getSessionUser } from "@/app/lib/require-auth";
+import { getOrgContext } from "@/app/lib/org-membership";
+import prisma from "@/lib/prisma";
 
 const extToMime: Record<string, string> = {
   pdf: "application/pdf",
@@ -19,8 +20,8 @@ export async function POST(
   { params }: { params: Promise<{ key: string }> },
 ) {
   try {
-    const user = await getSessionUser(request.headers);
-    if (!user) {
+    const ctx = await getOrgContext(request.headers);
+    if (!ctx) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -28,6 +29,16 @@ export async function POST(
     const decodedKey = decodeURIComponent(key);
     const ext = decodedKey.split(".").pop()?.toLowerCase() ?? "";
     const mimeType = extToMime[ext] || "image/jpeg";
+
+    const doc = await prisma.document.findFirst({
+      where: { key: decodedKey, organizationId: ctx.organizationId },
+    });
+    if (!doc) {
+      return NextResponse.json(
+        { error: "Document not found", success: false },
+        { status: 404 },
+      );
+    }
 
     const cached = await getCachedOcrResult(decodedKey);
     if (cached) {

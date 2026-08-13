@@ -1,25 +1,32 @@
 import { NextRequest, NextResponse } from "next/server";
 import { deleteObjectFromR2, getObjectSignedUrl } from "@/lib/cloudflareHelper";
-import { getSessionUser } from "@/app/lib/require-auth";
+import prisma from "@/lib/prisma";
+import { getOrgContext, canCompile } from "@/app/lib/org-membership";
 
 export async function GET(
-  _request: NextRequest,
+  request: NextRequest,
   { params }: { params: Promise<{ key: string }> },
 ) {
   try {
+    const ctx = await getOrgContext(request.headers);
+    if (!ctx) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const { key } = await params;
     const decodedKey = decodeURIComponent(key);
 
+    const doc = await prisma.document.findFirst({
+      where: { key: decodedKey, organizationId: ctx.organizationId },
+    });
+    if (!doc) {
+      return NextResponse.json({ error: "Document not found" }, { status: 404 });
+    }
+
     const url = await getObjectSignedUrl(decodedKey);
 
-    const ext = decodedKey.split(".").pop()?.toLowerCase() ?? "";
-    const isText = ext === "md" || ext === "txt";
-    const type = ext === "pdf" ? "pdf"
-      : ext === "docx" ? "docx"
-      : ext === "jpg" || ext === "jpeg" ? "jpeg"
-      : ext === "png" ? "png"
-      : isText ? "md"
-      : "other";
+    const type = doc.type.toLowerCase();
+    const isText = type === "md" || type === "txt";
 
     const name = decodedKey.split("/").pop() ?? decodedKey;
 
@@ -44,15 +51,29 @@ export async function DELETE(
   { params }: { params: Promise<{ key: string }> },
 ) {
   try {
-    const user = await getSessionUser(request.headers);
-    if (!user) {
+    const ctx = await getOrgContext(request.headers);
+    if (!ctx) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    if (!canCompile(ctx.role)) {
+      return NextResponse.json(
+        { error: "Only class representatives can delete documents" },
+        { status: 403 },
+      );
     }
 
     const { key } = await params;
     const decodedKey = decodeURIComponent(key);
 
+    const doc = await prisma.document.findFirst({
+      where: { key: decodedKey, organizationId: ctx.organizationId },
+    });
+    if (!doc) {
+      return NextResponse.json({ error: "Document not found" }, { status: 404 });
+    }
+
     await deleteObjectFromR2(decodedKey);
+    await prisma.document.delete({ where: { id: doc.id } });
 
     return NextResponse.json({ success: true });
   } catch (error) {

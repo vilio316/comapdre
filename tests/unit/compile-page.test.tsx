@@ -15,7 +15,39 @@ vi.mock("@/app/context/notification-context", () => ({
   useNotifications: () => notifications,
 }));
 
+vi.mock("@/lib/auth-client", () => ({
+  authClient: {
+    useSession: () => ({
+      data: { session: { activeOrganizationId: "org-1" } },
+    }),
+    organization: {
+      setActive: vi.fn().mockResolvedValue({}),
+    },
+  },
+}));
+
 const fetchMock = vi.fn();
+
+function mockFetch(routes: Record<string, unknown>) {
+  const entries = Object.entries(routes).sort(([a], [b]) => b.length - a.length);
+  fetchMock.mockImplementation((url: string) => {
+    const found = entries.find(
+      ([key]) => typeof url === "string" && url.startsWith(key),
+    );
+    if (found) {
+      const [, value] = found;
+      return Promise.resolve({ ok: true, json: async () => value });
+    }
+    return Promise.resolve({ ok: true, json: async () => ({ docs: [] }) });
+  });
+}
+
+const classesResponse = {
+  classes: [
+    { id: "org-1", name: "Physics 101", role: "class_rep" },
+    { id: "org-2", name: "Chemistry", role: "member" },
+  ],
+};
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -38,28 +70,28 @@ async function flush() {
 
 describe("CompilePage", () => {
   it("shows the page heading and subtext", async () => {
-    fetchMock.mockResolvedValue({ ok: true, json: async () => ({ docs: [] }) });
+    mockFetch({ "/api/classes": classesResponse, "/api/documents": { docs: [] } });
     render(<CompilePage />);
     await flush();
     expect(screen.getByRole("heading", { name: "Compile Documents" })).toBeInTheDocument();
   });
 
   it("shows a spinner while documents load and then the empty state", async () => {
-    fetchMock.mockResolvedValue({ ok: true, json: async () => ({ docs: [] }) });
+    mockFetch({ "/api/classes": classesResponse, "/api/documents": { docs: [] } });
     render(<CompilePage />);
     await flush();
     expect(screen.getByText("No stored documents found.")).toBeInTheDocument();
   });
 
   it("lists stored documents and lets you add one", async () => {
-    fetchMock.mockResolvedValue({
-      ok: true,
-      json: async () => ({ docs: [{ id: "doc1", name: "notes.pdf", type: "PDF" }] }),
+    mockFetch({
+      "/api/classes": classesResponse,
+      "/api/documents": { docs: [{ id: "doc1", name: "notes.pdf", type: "PDF" }] },
     });
     render(<CompilePage />);
     await flush();
 
-    fireEvent.change(screen.getByRole("combobox"), { target: { value: "doc1" } });
+    fireEvent.change(screen.getByRole("combobox", { name: "Document" }), { target: { value: "doc1" } });
     fireEvent.click(screen.getByRole("button", { name: "Add" }));
 
     expect(screen.getByText("notes.pdf")).toBeInTheDocument();
@@ -68,7 +100,7 @@ describe("CompilePage", () => {
   });
 
   it("adds local files and can remove them", async () => {
-    fetchMock.mockResolvedValue({ ok: true, json: async () => ({ docs: [] }) });
+    mockFetch({ "/api/classes": classesResponse, "/api/documents": { docs: [] } });
     render(<CompilePage />);
     await flush();
 
@@ -86,9 +118,11 @@ describe("CompilePage", () => {
   });
 
   it("posts a compile request with files and keys", async () => {
-    fetchMock
-      .mockResolvedValueOnce({ ok: true, json: async () => ({ docs: [] }) })
-      .mockResolvedValueOnce({ ok: true, json: async () => ({ jobId: "cj1" }) });
+    mockFetch({
+      "/api/classes": classesResponse,
+      "/api/documents": { docs: [] },
+      "/api/compile": { jobId: "cj1" },
+    });
     render(<CompilePage />);
     await flush();
 
@@ -99,8 +133,8 @@ describe("CompilePage", () => {
     fireEvent.click(screen.getByRole("button", { name: "Compile Documents" }));
     await flush();
 
-    const [url, init] = fetchMock.mock.calls[1] as [string, RequestInit];
-    expect(url).toBe("/api/compile");
+    const compileCall = fetchMock.mock.calls.find(([url]) => url === "/api/compile")!;
+    const [, init] = compileCall as [string, RequestInit];
     expect(init.method).toBe("POST");
     const body = init.body as FormData;
     expect((body.get("files") as File).name).toBe("a.png");
@@ -109,9 +143,19 @@ describe("CompilePage", () => {
   });
 
   it("shows an error when compile fails", async () => {
-    fetchMock
-      .mockResolvedValueOnce({ ok: true, json: async () => ({ docs: [] }) })
-      .mockResolvedValueOnce({ ok: false, json: async () => ({ error: "bad doc" }) });
+    mockFetch({
+      "/api/classes": classesResponse,
+      "/api/documents": { docs: [] },
+    });
+    fetchMock.mockImplementation((url: string) => {
+      if (url === "/api/compile") {
+        return Promise.resolve({ ok: false, json: async () => ({ error: "bad doc" }) });
+      }
+      if (url.startsWith("/api/classes")) {
+        return Promise.resolve({ ok: true, json: async () => classesResponse });
+      }
+      return Promise.resolve({ ok: true, json: async () => ({ docs: [] }) });
+    });
     render(<CompilePage />);
     await flush();
 
@@ -126,16 +170,15 @@ describe("CompilePage", () => {
   });
 
   it("polls compile status to done and shows the preview", async () => {
-    fetchMock
-      .mockResolvedValueOnce({ ok: true, json: async () => ({ docs: [] }) })
-      .mockResolvedValueOnce({ ok: true, json: async () => ({ jobId: "cj1" }) })
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({
-          status: "done",
-          result: { text: "Unified output text", sources: ["notes.pdf"] },
-        }),
-      });
+    mockFetch({
+      "/api/classes": classesResponse,
+      "/api/documents": { docs: [] },
+      "/api/compile": { jobId: "cj1" },
+      "/api/compile/status/cj1": {
+        status: "done",
+        result: { text: "Unified output text", sources: ["notes.pdf"] },
+      },
+    });
     render(<CompilePage />);
     await flush();
 
@@ -161,13 +204,15 @@ describe("CompilePage", () => {
   it("copies output to the clipboard", async () => {
     const writeText = vi.fn().mockResolvedValue(undefined);
     (navigator.clipboard as { writeText: typeof writeText }) = { writeText };
-    fetchMock
-      .mockResolvedValueOnce({ ok: true, json: async () => ({ docs: [] }) })
-      .mockResolvedValueOnce({ ok: true, json: async () => ({ jobId: "cj1" }) })
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ status: "done", result: { text: "copy me" } }),
-      });
+    mockFetch({
+      "/api/classes": classesResponse,
+      "/api/documents": { docs: [] },
+      "/api/compile": { jobId: "cj1" },
+      "/api/compile/status/cj1": {
+        status: "done",
+        result: { text: "copy me" },
+      },
+    });
     render(<CompilePage />);
     await flush();
 

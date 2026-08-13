@@ -1,10 +1,11 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import UploadPipeline from "@/app/components/upload-pipeline";
 import type { UploadedFile } from "@/app/components/upload-pipeline";
 import ConfirmDialog from "@/app/components/confirm-dialog";
+import ClassSelector from "@/app/components/class-selector";
 import { FaTrash } from "react-icons/fa6";
 
 interface Doc {
@@ -25,7 +26,7 @@ export default function DocumentsPage() {
   const [deleteKey, setDeleteKey] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
 
-  useEffect(() => {
+  const loadDocs = useCallback(() => {
     fetch("/api/documents")
       .then((r) => r.json())
       .then((data) => {
@@ -35,6 +36,10 @@ export default function DocumentsPage() {
       .finally(() => setLoading(false));
   }, []);
 
+  useEffect(() => {
+    loadDocs();
+  }, [loadDocs]);
+
   const filtered = docs.filter((d) => {
     const matchSearch = d.name.toLowerCase().includes(search.toLowerCase());
     const matchTag = !tagFilter || d.tags.includes(tagFilter);
@@ -43,17 +48,9 @@ export default function DocumentsPage() {
 
   const allTags = [...new Set(docs.flatMap((d) => d.tags))];
 
-  const handleUpload = (uf: UploadedFile, tags: string[]) => {
-    const doc: Doc = {
-      id: uf.id,
-      name: uf.name,
-      type: uf.type,
-      size: uf.size,
-      uploaded: new Date().toISOString().slice(0, 10),
-      tags,
-    };
-    setDocs((prev) => [doc, ...prev]);
+  const handleUpload = (_uf: UploadedFile, _tags: string[]) => {
     setShowUpload(false);
+    loadDocs();
   };
 
   const handleDelete = async () => {
@@ -87,14 +84,23 @@ export default function DocumentsPage() {
             Manage and organize your class materials.
           </p>
         </div>
-        {!showUpload && (
-          <button
-            onClick={() => setShowUpload(true)}
-            className="w-full rounded-lg bg-gold px-5 py-2.5 text-sm font-medium text-deep transition-colors hover:bg-gold-light sm:w-auto"
-          >
-            + Upload
-          </button>
-        )}
+        <div className="flex w-full items-center gap-3 sm:w-auto">
+          <ClassSelector
+            className="min-w-48"
+            onActiveChange={() => {
+              setLoading(true);
+              loadDocs();
+            }}
+          />
+          {!showUpload && (
+            <button
+              onClick={() => setShowUpload(true)}
+              className="shrink-0 rounded-lg bg-gold px-5 py-2.5 text-sm font-medium text-deep transition-colors hover:bg-gold-light"
+            >
+              + Upload
+            </button>
+          )}
+        </div>
       </div>
 
       {showUpload && (

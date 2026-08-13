@@ -3,6 +3,7 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import Link from "next/link";
 import { useNotifications } from "@/app/context/notification-context";
+import ClassSelector from "@/app/components/class-selector";
 import { FaX } from "react-icons/fa6";
 import { FaFileUpload } from "react-icons/fa";
 
@@ -59,11 +60,14 @@ export default function CompilePage() {
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
 
+  const [activeRole, setActiveRole] = useState<string | null>(null);
+  const canCompile = activeRole === "owner" || activeRole === "admin" || activeRole === "class_rep";
+
   const hasInput = files.length > 0 || selectedKeys.length > 0;
   const totalInputs = files.length + selectedKeys.length;
   const previewReady = output !== null && compileStatus === "done";
 
-  useEffect(() => {
+  const loadDocs = useCallback(() => {
     fetch("/api/documents")
       .then((r) => r.json())
       .then((data) => {
@@ -80,6 +84,25 @@ export default function CompilePage() {
       .catch(console.error)
       .finally(() => setLoadingDocs(false));
   }, []);
+
+  useEffect(() => {
+    loadDocs();
+  }, [loadDocs]);
+
+  const handleActiveChange = useCallback(
+    (cls: { id: string; role: string } | null) => {
+      setActiveRole(cls?.role ?? null);
+      setSelectedKeys([]);
+      setOutput(null);
+      setCompileStatus("processing");
+      setPdfDoc(null);
+      setPdfJobId(null);
+      setPdfStatus("idle");
+      setLoadingDocs(true);
+      loadDocs();
+    },
+    [loadDocs],
+  );
 
   useEffect(() => {
     if (!compileJobId) return;
@@ -253,13 +276,28 @@ export default function CompilePage() {
 
   return (
     <div className="mx-auto w-full px-3 py-6 sm:py-8 sm:px-4">
-      <h1 className="text-2xl font-bold text-deep sm:text-3xl">
-        Compile Documents
-      </h1>
-      <p className="mt-1 text-sm text-ink-muted sm:mt-2 sm:text-base">
-        OCR-read your documents, unify their contents, and save the result as a
-        PDF.
-      </p>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-bold text-deep sm:text-3xl">
+            Compile Documents
+          </h1>
+          <p className="mt-1 text-sm text-ink-muted sm:mt-2 sm:text-base">
+            OCR-read your documents, unify their contents, and save the result as a
+            PDF.
+          </p>
+        </div>
+        <ClassSelector
+          className="min-w-48"
+          onActiveChange={handleActiveChange}
+        />
+      </div>
+
+      {activeRole && !canCompile && (
+        <div className="mt-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          Only class representatives can compile documents. Ask your class rep
+          to run a compilation for this class.
+        </div>
+      )}
 
       <div className="mt-6 grid gap-6 md:grid-cols-2">
         <div>
@@ -280,6 +318,7 @@ export default function CompilePage() {
                 <select
                   value={pickKey}
                   onChange={(e) => setPickKey(e.target.value)}
+                  aria-label="Document"
                   className="min-w-0 flex-1 rounded-lg border border-gray-300 bg-surface px-3 py-2 text-sm outline-none focus:border-blue focus:ring-2 focus:ring-blue/20"
                 >
                   <option value="">Select a document...</option>
@@ -417,7 +456,7 @@ export default function CompilePage() {
             <div className="mt-4 flex flex-wrap items-center gap-2">
               <button
                 onClick={compile}
-                disabled={compiling}
+                disabled={compiling || !canCompile}
                 className="rounded-lg bg-gold px-6 py-2.5 text-sm font-medium text-deep transition-colors hover:bg-gold-light disabled:opacity-50"
               >
                 {compiling ? "Compiling..." : "Compile Documents"}
@@ -504,6 +543,7 @@ export default function CompilePage() {
                   />
                   <button
                     onClick={saveAsPdf}
+                    disabled={!canCompile}
                     className="mt-3 w-full rounded-lg bg-gold px-4 py-2.5 text-sm font-medium text-deep transition-colors hover:bg-gold-light disabled:opacity-50"
                   >
                     Save as PDF

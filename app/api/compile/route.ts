@@ -4,13 +4,19 @@ import path from "path";
 import os from "os";
 import { createCompileJob } from "@/app/lib/job-manager";
 import { resolveMime, MAX_FILES, MAX_TOTAL_BYTES } from "@/app/lib/mcq-utils";
-import { getSessionUser } from "@/app/lib/require-auth";
+import { getOrgContext, canCompile } from "@/app/lib/org-membership";
 
 export async function POST(request: NextRequest) {
   try {
-    const user = await getSessionUser(request.headers);
-    if (!user) {
+    const ctx = await getOrgContext(request.headers);
+    if (!ctx) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    if (!canCompile(ctx.role)) {
+      return NextResponse.json(
+        { error: "Only class representatives can compile documents" },
+        { status: 403 },
+      );
     }
 
     const formData = await request.formData();
@@ -59,7 +65,7 @@ export async function POST(request: NextRequest) {
       }),
     );
 
-    const { id } = await createCompileJob(tempFiles, keys);
+    const { id } = await createCompileJob(tempFiles, keys, ctx.organizationId);
     return NextResponse.json({ jobId: id });
   } catch (error) {
     console.error("Compilation submission failed:", error);

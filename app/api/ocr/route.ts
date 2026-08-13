@@ -4,7 +4,7 @@ import { writeFile } from "fs/promises";
 import path from "path";
 import os from "os";
 import { resolveMime } from "@/app/lib/mcq-utils";
-import { getSessionUser } from "@/app/lib/require-auth";
+import { getOrgContext } from "@/app/lib/org-membership";
 
 function sanitizeTempName(name: string): string {
   const cleaned = name
@@ -16,8 +16,8 @@ function sanitizeTempName(name: string): string {
 
 export async function POST(request: NextRequest) {
   try {
-    const user = await getSessionUser(request.headers);
-    if (!user) {
+    const ctx = await getOrgContext(request.headers);
+    if (!ctx) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 

@@ -35,6 +35,14 @@ vi.mock("@/lib/cloudflareHelper", () => ({
   uploadToR2: vi.fn(),
 }));
 
+vi.mock("@/lib/prisma", () => ({
+  default: {
+    document: {
+      create: vi.fn(),
+    },
+  },
+}));
+
 vi.mock("pdfkit", () => {
   class MockPDFDocument {
     on: ReturnType<typeof vi.fn>;
@@ -62,6 +70,7 @@ vi.mock("pdfkit", () => {
 });
 
 import { uploadToR2 } from "@/lib/cloudflareHelper";
+import prisma from "@/lib/prisma";
 import { startPdfWorker } from "@/app/lib/pdf-queue";
 
 const processor = () => bullmqHolder.processors["compile-pdf"]!;
@@ -99,6 +108,32 @@ describe("pdf generation", () => {
     expect(result.doc.name).toBe("notes.pdf");
     expect(result.doc.type).toBe("pdf");
     expect(result.doc.size).toBe(9);
+    expect(prisma.document.create).not.toHaveBeenCalled();
+  });
+
+  it("prefixes the key with the organization and records the document", async () => {
+    const result = await processor()(
+      fakeJob({ text: "body", fileName: "notes.pdf", organizationId: "org-1", userId: "u1" }),
+    );
+    expect(uploadToR2).toHaveBeenCalledWith(
+      Buffer.from("pdf-bytes"),
+      "org-1/notes.pdf",
+      "application/pdf",
+      ["compiled"],
+    );
+    expect(result.doc.key).toBe("org-1/notes.pdf");
+    expect(result.doc.name).toBe("notes.pdf");
+    expect(prisma.document.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        key: "org-1/notes.pdf",
+        name: "notes.pdf",
+        type: "PDF",
+        size: 9,
+        tags: '["compiled"]',
+        organizationId: "org-1",
+        userId: "u1",
+      }),
+    });
   });
 
   it("sanitizes unsafe characters in the output filename", async () => {

@@ -1,38 +1,41 @@
 import { NextResponse } from "next/server";
-import { listObjectsInBucket } from "@/lib/cloudflareHelper";
+import prisma from "@/lib/prisma";
+import { getOrgContext } from "@/app/lib/org-membership";
 
 function formatBytes(bytes: number): string {
   if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + " KB";
   return (bytes / (1024 * 1024)).toFixed(1) + " MB";
 }
 
-function extType(name: string): string {
-  const ext = name.split(".").pop()?.toLowerCase();
-  if (ext === "pdf") return "PDF";
-  if (ext === "docx") return "DOCX";
-  if (ext === "jpg" || ext === "jpeg") return "JPEG";
-  if (ext === "png") return "PNG";
-  if (ext === "md" || ext === "txt") return ext.toUpperCase();
-  return (ext ?? "FILE").toUpperCase();
-}
-
-function basename(key: string): string {
-  return key.split("/").pop() ?? key;
-}
-
-export async function GET() {
+function parseTags(raw: string | null): string[] {
+  if (!raw) return [];
   try {
-    const objects = await listObjectsInBucket();
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed.filter((t) => typeof t === "string") : [];
+  } catch {
+    return [];
+  }
+}
 
-    const docs = objects.map((obj) => ({
-      id: obj.name,
-      name: basename(obj.name),
-      type: extType(obj.name),
-      size: formatBytes(obj.size),
-      uploaded: obj.uploaded instanceof Date
-        ? obj.uploaded.toISOString().slice(0, 10)
-        : String(obj.uploaded).slice(0, 10),
-      tags: [] as string[],
+export async function GET(request: Request) {
+  const ctx = await getOrgContext(request.headers);
+  if (!ctx) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  try {
+    const documents = await prisma.document.findMany({
+      where: { organizationId: ctx.organizationId },
+      orderBy: { createdAt: "desc" },
+    });
+
+    const docs = documents.map((doc) => ({
+      id: doc.key,
+      name: doc.name,
+      type: doc.type,
+      size: formatBytes(doc.size),
+      uploaded: doc.createdAt.toISOString().slice(0, 10),
+      tags: parseTags(doc.tags),
     }));
 
     return NextResponse.json({ docs });

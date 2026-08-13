@@ -26,14 +26,16 @@ export async function GET(request: Request) {
     });
 
     const classes = memberships.map((m) => {
-      const owner = m.organization.members.find((member) => member.role === "owner");
+      const creator = m.organization.members.find(
+        (member) => member.role === "class_rep",
+      );
       return {
         id: m.organization.id,
         name: m.organization.name,
         code: m.organization.slug,
         description: m.organization.description,
         role: m.role,
-        ownerName: owner?.user.name ?? null,
+        classRepName: creator?.user.name ?? null,
         memberCount: m.organization.members.length,
         createdAt: m.organization.createdAt.toISOString(),
       };
