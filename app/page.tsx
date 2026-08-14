@@ -1,5 +1,10 @@
+"use client";
+
 import Link from "next/link";
 import { FaCamera, FaClipboard, FaBook, FaFile } from "react-icons/fa6";
+import { useRouter } from "next/navigation";
+import { authClient } from "@/lib/auth-client";
+import { useEffect } from "react";
 
 const offerings = [
   {
@@ -25,6 +30,15 @@ const offerings = [
 ];
 
 export default function LandingPage() {
+  const { data } = authClient.useSession();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (data && data.user) {
+      router.push("/dashboard");
+    }
+  }, [data]);
+
   return (
     <>
       <section className="mx-auto max-w-5xl px-4 py-20 text-center sm:py-28 sm:px-6">

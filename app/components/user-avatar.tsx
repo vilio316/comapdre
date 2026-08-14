@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { authClient } from "@/lib/auth-client";
+import { FaUser } from "react-icons/fa6";
 
 export function UserAvatar({
   size = 40,
@@ -57,9 +58,9 @@ export function UserAvatar({
   return (
     <div
       style={{ width: size, height: size }}
-      className={`flex items-center justify-center rounded-full bg-gold/20 font-bold text-gold ${className}`}
+      className={`grid place-items-center text-center rounded-full bg-gold/20 font-bold text-gold ${className}`}
     >
-      {user?.name?.charAt(0) ?? "?"}
+      <FaUser size={24} className="fill-blue block self-center" />
     </div>
   );
 }

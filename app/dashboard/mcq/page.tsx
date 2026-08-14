@@ -158,7 +158,7 @@ export default function MCQPage() {
                 <button
                   onClick={addKey}
                   disabled={!pickKey}
-                  className="shrink-0 rounded-lg border border-gray-300 bg-gold px-4 py-2 text-sm font-medium text-ink-muted transition-colors hover:border-gold/50 hover:text-deep disabled:cursor-not-allowed disabled:opacity-40"
+                  className="shrink-0 rounded-lg border border-gray-300 bg-gold px-4 py-2 text-sm font-medium text-ink transition-colors hover:border-gold/50 hover:text-deep disabled:cursor-not-allowed disabled:opacity-40"
                 >
                   Add
                 </button>

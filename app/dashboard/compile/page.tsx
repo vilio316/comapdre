@@ -61,7 +61,10 @@ export default function CompilePage() {
   const [copied, setCopied] = useState(false);
 
   const [activeRole, setActiveRole] = useState<string | null>(null);
-  const canCompile = activeRole === "owner" || activeRole === "admin" || activeRole === "class_rep";
+  const canCompile =
+    activeRole === "owner" ||
+    activeRole === "admin" ||
+    activeRole === "class_rep";
 
   const hasInput = files.length > 0 || selectedKeys.length > 0;
   const totalInputs = files.length + selectedKeys.length;
@@ -119,7 +122,8 @@ export default function CompilePage() {
           let message = "Failed to check compilation status";
           try {
             const errData = await res.json();
-            if (errData && typeof errData.error === "string") message = errData.error;
+            if (errData && typeof errData.error === "string")
+              message = errData.error;
           } catch {
             // non-JSON error body
           }
@@ -158,7 +162,8 @@ export default function CompilePage() {
           let message = "Failed to check PDF status";
           try {
             const errData = await res.json();
-            if (errData && typeof errData.error === "string") message = errData.error;
+            if (errData && typeof errData.error === "string")
+              message = errData.error;
           } catch {
             // non-JSON error body
           }
@@ -330,8 +335,8 @@ export default function CompilePage() {
             Compile Documents
           </h1>
           <p className="mt-1 text-sm text-ink-muted sm:mt-2 sm:text-base">
-            OCR-read your documents, unify their contents, and save the result as a
-            PDF.
+            OCR-read your documents, unify their contents, and save the result
+            as a PDF.
           </p>
         </div>
         <ClassSelector
@@ -347,7 +352,9 @@ export default function CompilePage() {
         </div>
       )}
 
-      <div className="mt-6 grid gap-6 md:grid-cols-2">
+      <div
+        className={`mt-6 grid gap-6 md:grid-cols-2 ${!canCompile && "opacity-50 cursor-not-allowed"}`}
+      >
         <div>
           <p className="mb-2 text-sm font-semibold text-deep">
             Select from your documents
@@ -364,6 +371,7 @@ export default function CompilePage() {
             <div>
               <div className="flex items-center gap-2">
                 <select
+                  disabled={!canCompile}
                   value={pickKey}
                   onChange={(e) => setPickKey(e.target.value)}
                   aria-label="Document"
@@ -438,6 +446,7 @@ export default function CompilePage() {
           >
             <input
               ref={inputRef}
+              disabled={!canCompile}
               type="file"
               accept=".pdf,.docx,.jpg,.jpeg,.png,.ppt,.pptx"
               multiple

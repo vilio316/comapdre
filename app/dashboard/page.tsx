@@ -7,31 +7,20 @@ import Link from "next/link";
 import { UserAvatar } from "@/app/components/user-avatar";
 import {
   FaUserGroup,
-  FaCode,
   FaGears,
   FaMagnifyingGlass,
   FaPlus,
 } from "react-icons/fa6";
+import ClassDashCard from "../components/class-dashboard-card";
 import { FaSignOutAlt } from "react-icons/fa";
 
-interface MyClass {
+export interface MyClass {
   id: string;
   name: string;
   code: string;
   description: string | null;
   role: string;
   memberCount: number;
-}
-
-const roleLabels: Record<string, string> = {
-  owner: "Owner",
-  admin: "Admin",
-  class_rep: "Class Rep",
-  member: "Member",
-};
-
-function roleLabel(role: string): string {
-  return roleLabels[role] ?? role;
 }
 
 export default function DashboardPage() {
@@ -78,8 +67,8 @@ export default function DashboardPage() {
     <div>
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-gray-200 bg-surface p-4 shadow-sm sm:p-5">
         <div className="flex items-center gap-3">
-          <UserAvatar size={40} className="sm:hidden" />
-          <UserAvatar size={48} className="hidden sm:block" />
+          <UserAvatar size={40} className="sm:hidden grid" />
+          <UserAvatar size={48} className="hidden sm:grid" />
           <div>
             <p className="text-sm font-semibold text-deep sm:text-base">
               Welcome, {user?.name ?? "User"}
@@ -118,7 +107,9 @@ export default function DashboardPage() {
       ) : classes.length === 0 ? (
         <div className="rounded-xl border border-dashed border-gray-300 bg-surface px-6 py-16 text-center">
           <FaUserGroup className="mx-auto mb-4 text-4xl text-ink-muted" />
-          <h2 className="text-lg font-bold text-deep">Join a class to get started</h2>
+          <h2 className="text-lg font-bold text-deep">
+            Join a class to get started
+          </h2>
           <p className="mx-auto mt-2 max-w-md text-sm text-ink-muted">
             Your classes and their tools will appear here once you join. Search
             for a class by name or code, or create your own.
@@ -151,34 +142,7 @@ export default function DashboardPage() {
           </div>
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {classes.map((cls) => (
-              <Link
-                key={cls.id}
-                href={`/dashboard/classes/${cls.id}`}
-                className="flex flex-col rounded-xl border border-gray-200 bg-surface p-4 shadow-sm transition-all hover:border-gold/40 hover:shadow-md"
-              >
-                <div className="mb-2 flex items-center justify-between gap-2">
-                  <p className="truncate text-sm font-semibold text-deep">
-                    {cls.name}
-                  </p>
-                  <span className="shrink-0 rounded-full bg-gold/10 px-2 py-0.5 text-[11px] font-medium text-gold">
-                    {roleLabel(cls.role)}
-                  </span>
-                </div>
-                {cls.description && (
-                  <p className="line-clamp-2 text-xs text-ink-muted">
-                    {cls.description}
-                  </p>
-                )}
-                <div className="mt-3 flex items-center justify-between border-t border-gray-100 pt-3 text-[11px] text-ink-muted">
-                  <span className="inline-flex items-center gap-1.5">
-                    <FaUserGroup /> {cls.memberCount} member
-                    {cls.memberCount === 1 ? "" : "s"}
-                  </span>
-                  <span className="inline-flex items-center gap-1.5 font-medium text-gold">
-                    <FaCode /> {cls.code}
-                  </span>
-                </div>
-              </Link>
+              <ClassDashCard cls={cls} key={cls.id} />
             ))}
           </div>
         </div>
