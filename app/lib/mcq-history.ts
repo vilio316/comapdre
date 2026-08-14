@@ -1,5 +1,6 @@
 import redis from "./redis";
 import { getMcqResult } from "./mcq-cache";
+import { getOrgContext } from "./org-membership";
 
 const HISTORY_ZSET = "mcq:history";
 const HISTORY_INFO_PREFIX = "mcq:history:info:";
@@ -26,8 +27,16 @@ export async function recordMcqHistory(entry: {
     .exec();
 }
 
-export async function listMcqHistory(limit = 100): Promise<McqHistoryEntry[]> {
-  const scored = await redis.zrevrange(HISTORY_ZSET, 0, limit - 1, "WITHSCORES");
+export async function listMcqHistory(
+  limit = 100,
+  orgId: string,
+): Promise<McqHistoryEntry[]> {
+  const scored = await redis.zrevrange(
+    HISTORY_ZSET,
+    0,
+    limit - 1,
+    "WITHSCORES",
+  );
   const entries: McqHistoryEntry[] = [];
   const toPrune: string[] = [];
 
@@ -50,7 +59,9 @@ export async function listMcqHistory(limit = 100): Promise<McqHistoryEntry[]> {
       continue;
     }
 
-    const info = await redis.hgetall(`${HISTORY_INFO_PREFIX}${resultKey}`);
+    const info = await redis.hgetall(
+      `${HISTORY_INFO_PREFIX}:${orgId}:${resultKey}`,
+    );
     let keys: string[] = [];
     if (info.keys) {
       try {
