@@ -10,27 +10,44 @@ import {
 } from "@/app/lib/job-manager";
 import { mcqQueue } from "@/app/lib/mcq-queue";
 import { recordMcqHistory } from "@/app/lib/mcq-history";
-import { resolveMime, MAX_FILES, MAX_TOTAL_BYTES, MAX_MCQS } from "@/app/lib/mcq-utils";
+import {
+  resolveMime,
+  MAX_FILES,
+  MAX_TOTAL_BYTES,
+  MAX_MCQS,
+} from "@/app/lib/mcq-utils";
 import { getSessionUser } from "@/app/lib/require-auth";
+import { getOrgContext } from "@/app/lib/org-membership";
 
-function buildMcqCacheKey(count: number, fileHashes: string[], keys: string[]): string {
-  const content = [
-    ...fileHashes.slice().sort(),
-    ...keys.slice().sort(),
-  ].join("|");
+function buildMcqCacheKey(
+  count: number,
+  fileHashes: string[],
+  keys: string[],
+  orgId: string,
+): string {
+  const content = [...fileHashes.slice().sort(), ...keys.slice().sort()].join(
+    "|",
+  );
   const hash = createHash("sha256").update(content).digest("hex").slice(0, 32);
-  return `mcq:v1:${count}:${hash}`;
+  return `mcq:v1:${orgId}:${count}:${hash}`;
 }
 
 export async function POST(request: NextRequest) {
   try {
     const user = await getSessionUser(request.headers);
+    const ctx = await getOrgContext(request.headers);
+    if (!ctx) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
     if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const formData = await request.formData();
-    const count = Math.min(Math.max(Number(formData.get("count")) || 20, 1), MAX_MCQS);
+    const count = Math.min(
+      Math.max(Number(formData.get("count")) || 20, 1),
+      MAX_MCQS,
+    );
     const files = formData
       .getAll("files")
       .filter((f): f is File => f instanceof File);
@@ -67,7 +84,12 @@ export async function POST(request: NextRequest) {
     const fileHashes = buffers.map((b) =>
       createHash("sha256").update(b).digest("hex"),
     );
-    const resultKey = buildMcqCacheKey(count, fileHashes, keys);
+    const resultKey = buildMcqCacheKey(
+      count,
+      fileHashes,
+      keys,
+      ctx.organizationId,
+    );
 
     const cached = await getMcqResult(resultKey);
     if (cached) {
@@ -91,7 +113,10 @@ export async function POST(request: NextRequest) {
       const mcqFiles = await Promise.all(
         files.map(async (file, i) => {
           const mimeType = resolveMime(file.name, file.type);
-          const tempPath = path.join(os.tmpdir(), `mcq-${Date.now()}-${file.name}`);
+          const tempPath = path.join(
+            os.tmpdir(),
+            `mcq-${Date.now()}-${file.name}`,
+          );
           await writeFile(tempPath, buffers[i]);
           return { path: tempPath, name: file.name, mimeType };
         }),

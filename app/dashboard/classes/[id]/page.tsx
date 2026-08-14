@@ -16,6 +16,9 @@ import {
   FaBook,
   FaCamera,
   FaFileImport,
+  FaFile,
+  FaArrowRight,
+  FaTrash,
 } from "react-icons/fa6";
 
 interface ClassMember {
@@ -24,6 +27,15 @@ interface ClassMember {
   email: string;
   role: string;
   joinedAt: string;
+}
+
+interface ClassDoc {
+  id: string;
+  name: string;
+  type: string;
+  size: string;
+  uploaded: string;
+  tags: string[];
 }
 
 interface Invitation {
@@ -107,6 +119,12 @@ export default function ClassDetailPage() {
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [cancellingId, setCancellingId] = useState<string | null>(null);
 
+  const [docs, setDocs] = useState<ClassDoc[]>([]);
+  const [docsLoading, setDocsLoading] = useState(true);
+  const [docsLoaded, setDocsLoaded] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [docsError, setDocsError] = useState("");
+
   const load = useCallback(async () => {
     try {
       const res = await fetch(`/api/classes/${encodeURIComponent(id)}`);
@@ -142,6 +160,23 @@ export default function ClassDetailPage() {
     authClient.organization.setActive({ organizationId: id }).catch(() => {
       // active class is best-effort; tools fall back to recent membership
     });
+  }, [id]);
+
+  useEffect(() => {
+    if (!id) return;
+    fetch(`/api/classes/${encodeURIComponent(id)}/documents`)
+      .then((res) => {
+        if (!res.ok) throw new Error(`Request failed (${res.status})`);
+        return res.json();
+      })
+      .then((body) => {
+        if (body.docs) setDocs(body.docs);
+        setDocsLoaded(true);
+      })
+      .catch(() => {
+        setDocsLoaded(true);
+      })
+      .finally(() => setDocsLoading(false));
   }, [id]);
 
   const handleInvite = async (e: React.FormEvent) => {
@@ -204,6 +239,32 @@ export default function ClassDetailPage() {
       setTimeout(() => setCopiedId(null), 2000);
     } catch {
       setInviteError("Could not copy link");
+    }
+  };
+
+  const roleCanDelete = ["owner", "admin", "class_rep"].includes(
+    data?.class.role ?? "",
+  );
+
+  const handleDeleteDoc = async (doc: ClassDoc) => {
+    if (!window.confirm(`Delete "${doc.name}" from this class?`)) return;
+    setDeletingId(doc.id);
+    setDocsError("");
+    try {
+      const res = await fetch(
+        `/api/documents/${encodeURIComponent(doc.id)}`,
+        { method: "DELETE" },
+      );
+      const body = await res.json().catch(() => null);
+      if (!res.ok) {
+        setDocsError(body?.error ?? "Failed to delete document");
+        return;
+      }
+      setDocs((prev) => prev.filter((d) => d.id !== doc.id));
+    } catch {
+      setDocsError("Failed to delete document");
+    } finally {
+      setDeletingId(null);
     }
   };
 
@@ -285,6 +346,95 @@ export default function ClassDetailPage() {
             <p className="mt-0.5 text-xs text-ink-muted">{tool.desc}</p>
           </Link>
         ))}
+      </div>
+
+      <div className="mb-6 rounded-xl border border-gray-200 bg-surface p-5 shadow-sm">
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+          <h2 className="flex items-center gap-2 text-sm font-semibold text-deep">
+            <FaFile /> Class Documents
+          </h2>
+          <Link
+            href="/dashboard/documents"
+            className="inline-flex items-center gap-1.5 text-xs font-medium text-ink-muted transition-colors hover:text-deep"
+          >
+            Manage documents <FaArrowRight />
+          </Link>
+        </div>
+
+        {docsLoading ? (
+          <div className="flex items-center justify-center rounded-lg border border-gray-100 p-4">
+            <div className="h-4 w-4 animate-spin rounded-full border-2 border-gray-300 border-t-deep" />
+          </div>
+        ) : !docsLoaded || docs.length === 0 ? (
+          <p className="text-sm text-ink-muted">
+            No documents in this class yet.
+          </p>
+        ) : (
+          <div className="space-y-2">
+            {docs.map((doc) => (
+              <div
+                key={doc.id}
+                className="flex flex-wrap items-center gap-3 rounded-lg border border-gray-100 p-3"
+              >
+                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-deep/5 text-[10px] font-bold text-deep">
+                  {doc.type}
+                </div>
+                <div className="w-32 min-w-0 flex-1">
+                  <Link
+                    href={`/dashboard/documents/${encodeURIComponent(doc.id)}`}
+                    className="truncate text-sm font-medium text-deep transition-colors hover:text-gold"
+                  >
+                    {doc.name}
+                  </Link>
+                  <p className="text-[11px] text-ink-muted">
+                    {doc.size} &middot; {doc.uploaded}
+                  </p>
+                </div>
+                {doc.tags.length > 0 && (
+                  <div className="hidden flex-wrap gap-1 sm:flex">
+                    {doc.tags.map((t) => (
+                      <span
+                        key={t}
+                        className="rounded-full bg-gold/10 px-2 py-0.5 text-[11px] font-medium text-gold"
+                      >
+                        {t}
+                      </span>
+                    ))}
+                  </div>
+                )}
+                <div className="flex shrink-0 items-center gap-2">
+                  <Link
+                    href={`/dashboard/documents/${encodeURIComponent(doc.id)}`}
+                    className="rounded-md border border-gray-200 px-2.5 py-1.5 text-[11px] text-ink-muted transition-colors hover:bg-gray-50"
+                  >
+                    Details
+                  </Link>
+                  {roleCanDelete && (
+                    <button
+                      onClick={() => handleDeleteDoc(doc)}
+                      disabled={deletingId === doc.id}
+                      className="inline-flex items-center gap-1.5 rounded-md border border-red-200 px-2.5 py-1.5 text-[11px] font-medium text-red-600 transition-colors hover:bg-red-50 disabled:opacity-60"
+                    >
+                      {deletingId === doc.id ? (
+                        <>
+                          <span className="h-3 w-3 animate-spin rounded-full border-2 border-red-200 border-t-red-600" />{" "}
+                          Deleting...
+                        </>
+                      ) : (
+                        <>
+                          <FaTrash /> Delete
+                        </>
+                      )}
+                    </button>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+        {docsError && (
+          <p className="mt-3 text-xs text-red-600">{docsError}</p>
+        )}
       </div>
 
       {inviteError && (

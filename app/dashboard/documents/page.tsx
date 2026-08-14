@@ -26,7 +26,7 @@ export default function DocumentsPage() {
   const [deleteKey, setDeleteKey] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
 
-  const loadDocs = useCallback(() => {
+  const loadDocs = async () => {
     fetch("/api/documents")
       .then((r) => {
         if (!r.ok) throw new Error(`Request failed (${r.status})`);
@@ -37,11 +37,7 @@ export default function DocumentsPage() {
       })
       .catch(console.error)
       .finally(() => setLoading(false));
-  }, []);
-
-  useEffect(() => {
-    loadDocs();
-  }, [loadDocs]);
+  };
 
   const filtered = docs.filter((d) => {
     const matchSearch = d.name.toLowerCase().includes(search.toLowerCase());
@@ -92,7 +88,6 @@ export default function DocumentsPage() {
             className="min-w-48"
             onActiveChange={() => {
               setLoading(true);
-              loadDocs();
             }}
           />
           {!showUpload && (

@@ -20,6 +20,10 @@ vi.mock("fs/promises", () => ({
   default: { writeFile: vi.fn(async () => undefined) },
 }));
 
+vi.mock("@/app/lib/org-membership", () => ({
+  getOrgContext: vi.fn(),
+}));
+
 vi.mock("@/lib/auth", () => ({
   auth: { api: { getSession: vi.fn() } },
 }));
@@ -28,6 +32,7 @@ import { POST as mcqPost } from "@/app/api/mcq/route";
 import { createLocalMcqJob, createOnlineMcqJob, getMcqResult } from "@/app/lib/job-manager";
 import { mcqQueue } from "@/app/lib/mcq-queue";
 import { recordMcqHistory } from "@/app/lib/mcq-history";
+import { getOrgContext } from "@/app/lib/org-membership";
 import { auth } from "@/lib/auth";
 
 function buildRequest(fields: Record<string, string | File | string[]>) {
@@ -51,11 +56,18 @@ function mcqResultKey(keys: string[], count: number): string {
     .update(keys.slice().sort().join("|"))
     .digest("hex")
     .slice(0, 32);
-  return `mcq:v1:${count}:${hash}`;
+  return `mcq:v1:org-1:${count}:${hash}`;
 }
+
+const orgContext = {
+  user: { id: "u1", name: "Alice", email: "a@b.c" },
+  organizationId: "org-1",
+  role: "class_rep",
+};
 
 beforeEach(() => {
   vi.clearAllMocks();
+  vi.mocked(getOrgContext).mockResolvedValue(orgContext);
   vi.mocked(auth.api.getSession).mockResolvedValue({
     user: { id: "u1", email: "a@b.c" },
     session: {},
@@ -96,7 +108,7 @@ describe("POST /api/mcq", () => {
     const body = await res.json();
     expect(res.status).toBe(200);
     expect(body.cached).toBe(true);
-    expect(body.resultKey).toContain("mcq:v1:5:");
+    expect(body.resultKey).toContain("mcq:v1:org-1:5:");
     expect(recordMcqHistory).toHaveBeenCalledTimes(1);
   });
 
