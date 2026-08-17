@@ -152,7 +152,9 @@ export default function ClassDetailPage() {
         return res.json();
       })
       .then((body) => setData(body))
-      .catch((err) => setError(err instanceof Error ? err.message : "Failed to load class"))
+      .catch((err) =>
+        setError(err instanceof Error ? err.message : "Failed to load class"),
+      )
       .finally(() => setLoading(false));
   }, [id]);
 
@@ -189,11 +191,14 @@ export default function ClassDetailPage() {
     }
     setInviting(true);
     try {
-      const res = await fetch(`/api/classes/${encodeURIComponent(id)}/invitations`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: inviteEmail, role: inviteRole }),
-      });
+      const res = await fetch(
+        `/api/classes/${encodeURIComponent(id)}/invitations`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email: inviteEmail, role: inviteRole }),
+        },
+      );
       const body = await res.json().catch(() => null);
       if (!res.ok) {
         setInviteError(body?.error ?? "Failed to send invitation");
@@ -251,10 +256,9 @@ export default function ClassDetailPage() {
     setDeletingId(doc.id);
     setDocsError("");
     try {
-      const res = await fetch(
-        `/api/documents/${encodeURIComponent(doc.id)}`,
-        { method: "DELETE" },
-      );
+      const res = await fetch(`/api/documents/${encodeURIComponent(doc.id)}`, {
+        method: "DELETE",
+      });
       const body = await res.json().catch(() => null);
       if (!res.ok) {
         setDocsError(body?.error ?? "Failed to delete document");
@@ -306,7 +310,9 @@ export default function ClassDetailPage() {
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
-              <h1 className="text-lg font-bold text-deep sm:text-xl">{cls.name}</h1>
+              <h1 className="text-lg font-bold text-deep sm:text-xl">
+                {cls.name}
+              </h1>
               <span className="shrink-0 rounded-full bg-gold/10 px-2 py-0.5 text-[11px] font-medium text-gold">
                 {roleLabel(cls.role)}
               </span>
@@ -354,7 +360,7 @@ export default function ClassDetailPage() {
             <FaFile /> Class Documents
           </h2>
           <Link
-            href="/dashboard/documents"
+            href={`/dashboard/classes/${id}/documents`}
             className="inline-flex items-center gap-1.5 text-xs font-medium text-ink-muted transition-colors hover:text-deep"
           >
             Manage documents <FaArrowRight />
@@ -432,9 +438,7 @@ export default function ClassDetailPage() {
             ))}
           </div>
         )}
-        {docsError && (
-          <p className="mt-3 text-xs text-red-600">{docsError}</p>
-        )}
+        {docsError && <p className="mt-3 text-xs text-red-600">{docsError}</p>}
       </div>
 
       {inviteError && (
@@ -450,8 +454,13 @@ export default function ClassDetailPage() {
 
       {canInvite && (
         <div className="mb-6 rounded-xl border border-gray-200 bg-surface p-5 shadow-sm">
-          <h2 className="mb-3 text-sm font-semibold text-deep">Invite a member</h2>
-          <form onSubmit={handleInvite} className="flex flex-col gap-3 sm:flex-row">
+          <h2 className="mb-3 text-sm font-semibold text-deep">
+            Invite a member
+          </h2>
+          <form
+            onSubmit={handleInvite}
+            className="flex flex-col gap-3 sm:flex-row"
+          >
             <input
               type="email"
               value={inviteEmail}

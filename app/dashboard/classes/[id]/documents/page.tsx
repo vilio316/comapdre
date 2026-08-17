@@ -26,30 +26,28 @@ export default function DocumentsPage() {
   const [deleteKey, setDeleteKey] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
 
-  const loadDocs = async () => {
-    fetch("/api/documents")
-      .then((r) => {
-        if (!r.ok) throw new Error(`Request failed (${r.status})`);
-        return r.json();
-      })
-      .then((data) => {
-        if (data.docs) setDocs(data.docs);
-      })
-      .catch(console.error)
-      .finally(() => setLoading(false));
-  };
+  useEffect(() => {
+    const loadDocs = async () => {
+      const request = await fetch("/api/documents");
+      const response = await request.json();
+      if (response.docs) {
+        setDocs(response.docs);
+        setLoading(false);
+      }
+    };
+    loadDocs();
+  }, []);
 
-  const filtered = docs.filter((d) => {
-    const matchSearch = d.name.toLowerCase().includes(search.toLowerCase());
-    const matchTag = !tagFilter || d.tags.includes(tagFilter);
-    return matchSearch && matchTag;
-  });
+  // const filtered = docs.filter((d) => {
+  //   const matchSearch = d.name.toLowerCase().includes(search.toLowerCase());
+  //   const matchTag = !tagFilter || d.tags.includes(tagFilter);
+  //   return matchSearch && matchTag;
+  // });
 
   const allTags = [...new Set(docs.flatMap((d) => d.tags))];
 
   const handleUpload = (_uf: UploadedFile, _tags: string[]) => {
     setShowUpload(false);
-    loadDocs();
   };
 
   const handleDelete = async () => {
@@ -84,12 +82,6 @@ export default function DocumentsPage() {
           </p>
         </div>
         <div className="flex w-full items-center gap-3 sm:w-auto">
-          <ClassSelector
-            className="min-w-48"
-            onActiveChange={() => {
-              setLoading(true);
-            }}
-          />
           {!showUpload && (
             <button
               onClick={() => setShowUpload(true)}
@@ -135,13 +127,13 @@ export default function DocumentsPage() {
         <div className="mt-12 flex justify-center">
           <div className="h-6 w-6 animate-spin rounded-full border-2 border-gray-300 border-t-deep" />
         </div>
-      ) : filtered.length === 0 ? (
+      ) : docs.length === 0 ? (
         <div className="mt-12 text-center">
           <p className="text-ink-muted">No documents found.</p>
         </div>
       ) : (
         <div className="space-y-3">
-          {filtered.map((doc) => (
+          {docs.map((doc) => (
             <div
               key={doc.id}
               className="flex items-center gap-3 rounded-xl border border-gray-200 bg-surface p-3 transition-colors hover:border-gold/40 sm:gap-4 sm:p-4"
