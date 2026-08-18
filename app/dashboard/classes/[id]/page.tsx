@@ -387,7 +387,7 @@ export default function ClassDetailPage() {
                 </div>
                 <div className="w-32 min-w-0 flex-1">
                   <Link
-                    href={`/dashboard/documents/${encodeURIComponent(doc.id)}`}
+                    href={`/dashboard/classes/${id}/documents/${encodeURIComponent(doc.id)}`}
                     className="truncate text-sm font-medium text-deep transition-colors hover:text-gold"
                   >
                     {doc.name}
@@ -410,7 +410,7 @@ export default function ClassDetailPage() {
                 )}
                 <div className="flex shrink-0 items-center gap-2">
                   <Link
-                    href={`/dashboard/documents/${encodeURIComponent(doc.id)}`}
+                    href={`/dashboard/classes/${id}/documents/${encodeURIComponent(doc.id)}`}
                     className="rounded-md border border-gray-200 px-2.5 py-1.5 text-[11px] text-ink-muted transition-colors hover:bg-gray-50"
                   >
                     Details
