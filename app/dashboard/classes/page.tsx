@@ -10,6 +10,7 @@ import {
   FaEnvelope,
   FaArrowRight,
 } from "react-icons/fa6";
+import ClassDashCard from "@/app/components/class-dashboard-card";
 
 interface MyClass {
   id: string;
@@ -63,8 +64,10 @@ export default function ClassesPage() {
   const [searching, setSearching] = useState(false);
   const [error, setError] = useState("");
   const [joiningId, setJoiningId] = useState<string | null>(null);
-  const [showCreate, setShowCreate] = useState(() =>
-    typeof window !== "undefined" && window.location.search.includes("create=1"),
+  const [showCreate, setShowCreate] = useState(
+    () =>
+      typeof window !== "undefined" &&
+      window.location.search.includes("create=1"),
   );
   const [newName, setNewName] = useState("");
   const [newDescription, setNewDescription] = useState("");
@@ -224,7 +227,9 @@ export default function ClassesPage() {
     <div>
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-gray-200 bg-surface p-4 shadow-sm sm:p-5">
         <div>
-          <h1 className="text-lg font-bold text-deep sm:text-xl">Your Classes</h1>
+          <h1 className="text-lg font-bold text-deep sm:text-xl">
+            Your Classes ({myClasses.length})
+          </h1>
           <p className="mt-1 text-sm text-ink-muted">
             Classes you have joined appear here. Search for a class name or code
             to find and join new ones.
@@ -242,7 +247,9 @@ export default function ClassesPage() {
 
       {showCreate && (
         <div className="mb-5 rounded-xl border border-gray-200 bg-surface p-4 shadow-sm sm:p-5">
-          <h2 className="mb-3 text-sm font-semibold text-deep">Create a new class</h2>
+          <h2 className="mb-3 text-sm font-semibold text-deep">
+            Create a new class
+          </h2>
           <div className="flex flex-col gap-3 sm:flex-row">
             <input
               value={newName}
@@ -363,7 +370,9 @@ export default function ClassesPage() {
                   </p>
                   <p className="text-[11px] text-ink-muted">
                     Invited as {roleLabel(inv.role)} &middot; code{" "}
-                    <span className="font-medium text-gold">{inv.class.code}</span>
+                    <span className="font-medium text-gold">
+                      {inv.class.code}
+                    </span>
                   </p>
                 </div>
                 <Link
@@ -377,10 +386,6 @@ export default function ClassesPage() {
           </div>
         </div>
       )}
-
-      <div className="mb-4">
-        <h2 className="text-base font-bold text-deep">My Classes</h2>
-      </div>
 
       {loading ? (
         <div className="mt-10 flex justify-center">
@@ -399,34 +404,7 @@ export default function ClassesPage() {
       ) : (
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {myClasses.map((cls) => (
-            <Link
-              key={cls.id}
-              href={`/dashboard/classes/${cls.id}`}
-              className="flex flex-col rounded-xl border border-gray-200 bg-surface p-4 shadow-sm transition-all hover:border-gold/40 hover:shadow-md"
-            >
-              <div className="mb-2 flex items-center justify-between gap-2">
-                <p className="truncate text-sm font-semibold text-deep">
-                  {cls.name}
-                </p>
-                <span className="shrink-0 rounded-full bg-gold/10 px-2 py-0.5 text-[11px] font-medium text-gold">
-                  {roleLabel(cls.role)}
-                </span>
-              </div>
-              {cls.description && (
-                <p className="line-clamp-2 text-xs text-ink-muted">
-                  {cls.description}
-                </p>
-              )}
-              <div className="mt-3 flex items-center justify-between border-t border-gray-100 pt-3 text-[11px] text-ink-muted">
-                <span className="inline-flex items-center gap-1.5">
-                  <FaUserGroup /> {cls.memberCount} member
-                  {cls.memberCount === 1 ? "" : "s"}
-                </span>
-                <span className="inline-flex items-center gap-1.5 font-medium text-gold">
-                  <FaCode /> {cls.code}
-                </span>
-              </div>
-            </Link>
+            <ClassDashCard cls={cls} key={cls.id} />
           ))}
         </div>
       )}

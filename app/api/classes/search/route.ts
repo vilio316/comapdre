@@ -11,17 +11,22 @@ export async function GET(request: Request) {
 
     const url = new URL(request.url);
     const query = (url.searchParams.get("q") ?? "").trim();
-
     if (!query) {
       return NextResponse.json({ classes: [] });
     }
     if (query.length > 100) {
-      return NextResponse.json({ error: "Search query must be 100 characters or fewer" }, { status: 400 });
+      return NextResponse.json(
+        { error: "Search query must be 100 characters or fewer" },
+        { status: 400 },
+      );
     }
 
-    const myOrgIds = (
-      await prisma.member.findMany({ where: { userId: user.id }, select: { organizationId: true } })
-    ).map((m) => m.organizationId);
+    // const myOrgIds = (
+    //   await prisma.member.findMany({
+    //     where: { userId: user.id },
+    //     select: { organizationId: true },
+    //   })
+    // ).map((m) => m.organizationId);
 
     const organizations = await prisma.organization.findMany({
       where: {
@@ -32,7 +37,7 @@ export async function GET(request: Request) {
               { slug: { contains: query, mode: "insensitive" } },
             ],
           },
-          ...(myOrgIds.length ? [{ id: { notIn: myOrgIds } }] : []),
+          // ...(myOrgIds.length ? [{ id: { notIn: myOrgIds } }] : []),
         ],
       },
       include: {
@@ -60,7 +65,10 @@ export async function GET(request: Request) {
   } catch (error) {
     console.error("Failed to search classes:", error);
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Failed to search classes" },
+      {
+        error:
+          error instanceof Error ? error.message : "Failed to search classes",
+      },
       { status: 500 },
     );
   }
