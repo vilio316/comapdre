@@ -1,10 +1,7 @@
-"use client";
-
-import { useState, useEffect } from "react";
-import { authClient } from "@/lib/auth-client";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { UserAvatar } from "@/app/components/user-avatar";
+import { LogoutButton } from "@/app/components/logout-button";
 import {
   FaUserGroup,
   FaGears,
@@ -12,56 +9,14 @@ import {
   FaPlus,
 } from "react-icons/fa6";
 import ClassDashCard from "../components/class-dashboard-card";
-import { FaSignOutAlt } from "react-icons/fa";
+import { getMyClasses } from "@/app/lib/classes";
+import { getSessionUserServer } from "@/app/lib/server-session";
 
-export interface MyClass {
-  id: string;
-  name: string;
-  code: string;
-  description: string | null;
-  role: string;
-  memberCount: number;
-}
+export default async function DashboardPage() {
+  const user = await getSessionUserServer();
+  if (!user) redirect("/");
 
-export default function DashboardPage() {
-  const { useSession } = authClient;
-  const { data } = useSession();
-  const router = useRouter();
-
-  const [classes, setClasses] = useState<MyClass[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-
-  useEffect(() => {
-    let cancelled = false;
-    fetch("/api/classes")
-      .then((res) => {
-        if (!res.ok) throw new Error(`Request failed (${res.status})`);
-        return res.json();
-      })
-      .then((data) => {
-        if (cancelled) return;
-        if (data.classes) setClasses(data.classes);
-        if (data.error) setError(data.error);
-      })
-      .catch((err) => {
-        if (!cancelled) console.error("Failed to load classes:", err);
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  const logout = () => {
-    authClient.signOut({
-      fetchOptions: { onSuccess: () => router.push("/") },
-    });
-  };
-
-  const user = data?.user;
+  const classes = await getMyClasses(user.id);
 
   return (
     <div>
@@ -71,9 +26,9 @@ export default function DashboardPage() {
           <UserAvatar size={48} className="hidden sm:grid" />
           <div>
             <p className="text-sm font-semibold text-deep sm:text-base">
-              Welcome, {user?.name ?? "User"}
+              Welcome, {user.name ?? "User"}
             </p>
-            <p className="text-xs text-ink-muted">{user?.email ?? ""}</p>
+            <p className="text-xs text-ink-muted">{user.email ?? ""}</p>
           </div>
         </div>
         <div className="flex items-center gap-2">
@@ -84,27 +39,11 @@ export default function DashboardPage() {
             <FaGears />
             Settings
           </Link>
-          <button
-            onClick={logout}
-            className="flex items-center gap-1.5 rounded-lg border border-gray-200 px-3 py-2 text-xs font-medium text-ink-muted transition-colors hover:bg-red-50 hover:text-red-600"
-          >
-            <FaSignOutAlt />
-            Logout
-          </button>
+          <LogoutButton />
         </div>
       </div>
 
-      {error && (
-        <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-          {error}
-        </div>
-      )}
-
-      {loading ? (
-        <div className="mt-16 flex justify-center">
-          <div className="h-8 w-8 animate-spin rounded-full border-2 border-gray-300 border-t-deep" />
-        </div>
-      ) : classes.length === 0 ? (
+      {classes.length === 0 ? (
         <div className="rounded-xl border border-dashed border-gray-300 bg-surface px-6 py-16 text-center">
           <FaUserGroup className="mx-auto mb-4 text-4xl text-ink-muted" />
           <h2 className="text-lg font-bold text-deep">

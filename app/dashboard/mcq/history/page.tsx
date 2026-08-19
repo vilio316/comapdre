@@ -1,8 +1,8 @@
-"use client";
-
-import { useEffect, useState } from "react";
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import McqTabs from "@/app/components/mcq-tabs";
+import { listMcqHistory } from "@/app/lib/mcq-history";
+import { getOrgContextServer } from "@/app/lib/server-session";
 
 interface HistoryEntry {
   resultKey: string;
@@ -27,29 +27,14 @@ function formatDate(ts: number): string {
   });
 }
 
-export default function McqHistoryPage() {
-  const [history, setHistory] = useState<HistoryEntry[] | null>(null);
-  const [error, setError] = useState<string | null>(null);
+export default async function McqHistoryPage() {
+  const ctx = await getOrgContextServer();
+  if (!ctx) redirect("/");
 
-  useEffect(() => {
-    let active = true;
-    fetch("/api/mcq/history")
-      .then((r) => {
-        if (!r.ok) throw new Error(`Request failed (${r.status})`);
-        return r.json();
-      })
-      .then((res) => {
-        if (!active) return;
-        if (res.error) throw new Error(res.error);
-        setHistory(res.history ?? []);
-      })
-      .catch((err) => {
-        if (active) setError(err.message);
-      });
-    return () => {
-      active = false;
-    };
-  }, []);
+  const all = await listMcqHistory(100, ctx.organizationId);
+  const history: HistoryEntry[] = all.filter((entry) =>
+    entry.resultKey.includes(ctx.organizationId),
+  );
 
   return (
     <div className="mx-auto px-3 py-6 sm:py-8 sm:px-4">
@@ -63,19 +48,7 @@ export default function McqHistoryPage() {
       <McqTabs />
 
       <div className="mt-6">
-        {error && (
-          <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-            {error}
-          </div>
-        )}
-
-        {!error && history === null && (
-          <div className="flex items-center justify-center rounded-lg border border-gray-200 bg-surface p-8">
-            <div className="h-4 w-4 animate-spin rounded-full border-2 border-gray-300 border-t-gold" />
-          </div>
-        )}
-
-        {!error && history !== null && history.length === 0 && (
+        {history.length === 0 && (
           <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-gray-200 p-10 text-center">
             <svg
               className="mb-3 h-10 w-10 text-ink-muted"
@@ -106,7 +79,7 @@ export default function McqHistoryPage() {
           </div>
         )}
 
-        {history !== null && history.length > 0 && (
+        {history.length > 0 && (
           <ul className="space-y-3">
             {history.map((entry) => {
               const title =

@@ -1,47 +1,49 @@
-"use client";
-
-import { useEffect, useState } from "react";
-import { useParams } from "next/navigation";
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import McqQuestions, { type McqQuestion } from "@/app/components/mcq-questions";
 import { FaArrowLeft } from "react-icons/fa6";
+import { getSessionUserServer } from "@/app/lib/server-session";
+import { getMcqResult } from "@/app/lib/job-manager";
 
-export default function McqResultPage() {
-  const params = useParams();
-  const key = params.key as string;
+export default async function McqResultPage({
+  params,
+}: {
+  params: Promise<{ key: string }>;
+}) {
+  const user = await getSessionUserServer();
+  if (!user) redirect("/");
 
-  const [questions, setQuestions] = useState<McqQuestion[] | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
+  const { key } = await params;
+  let lookupKey = key;
+  try {
+    lookupKey = decodeURIComponent(key);
+  } catch {
+    // leave as-is if malformed
+  }
 
-  useEffect(() => {
-    if (!key) return;
-    let lookupKey = key;
+  let cached = await getMcqResult(lookupKey);
+  if (!cached) {
     try {
-      lookupKey = decodeURIComponent(key);
+      cached = await getMcqResult(decodeURIComponent(lookupKey));
     } catch {
-      // leave as-is if malformed
+      // ignore malformed keys
     }
-    fetch(`/api/mcq/result?key=${encodeURIComponent(lookupKey)}`)
-      .then((r) => {
-        if (!r.ok) throw new Error(`Request failed (${r.status})`);
-        return r.json();
-      })
-      .then((res) => {
-        if (res.error) throw new Error(res.error);
-        if (!Array.isArray(res.questions)) throw new Error("Invalid result");
-        setQuestions(res.questions);
-      })
-      .catch((err) => setError(err.message))
-      .finally(() => setLoading(false));
-  }, [key]);
+  }
 
-  if (loading) {
-    return (
-      <div className="flex flex-1 items-center justify-center py-20">
-        <div className="h-8 w-8 animate-spin rounded-full border-2 border-gray-300 border-t-deep" />
-      </div>
-    );
+  let questions: McqQuestion[] | null = null;
+  let error: string | null = null;
+  if (!cached) {
+    error = "Result not found";
+  } else {
+    try {
+      const parsed = JSON.parse(cached) as { questions?: unknown };
+      questions = Array.isArray(parsed.questions)
+        ? (parsed.questions as McqQuestion[])
+        : null;
+      if (!questions) error = "Invalid result";
+    } catch {
+      error = "Invalid result";
+    }
   }
 
   if (error || !questions) {

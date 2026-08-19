@@ -1,4 +1,4 @@
-import { MyClass } from "../dashboard/page";
+import type { MyClass } from "@/app/lib/class-types";
 import Link from "next/link";
 import { FaCode, FaUserGroup } from "react-icons/fa6";
 

@@ -1,10 +1,7 @@
-"use client";
-
 import Link from "next/link";
 import { FaCamera, FaClipboard, FaBook, FaFile } from "react-icons/fa6";
-import { useRouter } from "next/navigation";
-import { authClient } from "@/lib/auth-client";
-import { useEffect } from "react";
+import { redirect } from "next/navigation";
+import { getSessionUserServer } from "@/app/lib/server-session";
 
 const offerings = [
   {
@@ -29,15 +26,9 @@ const offerings = [
   },
 ];
 
-export default function LandingPage() {
-  const { data } = authClient.useSession();
-  const router = useRouter();
-
-  useEffect(() => {
-    if (data && data.user) {
-      router.push("/dashboard");
-    }
-  }, [data]);
+export default async function LandingPage() {
+  const user = await getSessionUserServer();
+  if (user) redirect("/dashboard");
 
   return (
     <>
