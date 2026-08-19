@@ -512,7 +512,7 @@ export default function ClassDetailPage() {
                 <span className="font-medium text-deep">
                   {new Date(newInvite.expiresAt).toLocaleDateString()}
                 </span>{" "}
-                &middot; can be used once
+                &middot; anyone with the link can join until then
               </p>
             </div>
           )}

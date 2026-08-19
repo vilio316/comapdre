@@ -23,7 +23,7 @@ export async function GET(
       invitation.expiresAt.getTime() <= Date.now()
     ) {
       return NextResponse.json(
-        { error: "This invite link is no longer available. It may have expired or been used already." },
+        { error: "This invite link is no longer available. It may have expired or been cancelled." },
         { status: 404 },
       );
     }
@@ -95,30 +95,24 @@ export async function POST(
       return NextResponse.json({ error: "Class not found" }, { status: 404 });
     }
 
-    const member = await prisma.$transaction([
-      prisma.member.create({
-        data: {
-          id: `mem_${crypto.randomUUID().replace(/-/g, "")}`,
-          userId: user.id,
-          organizationId: invitation.organizationId,
-          role: invitation.role,
-        },
-      }),
-      prisma.invitation.update({
-        where: { id: invitationId },
-        data: { status: "accepted" },
-      }),
-    ]);
+    const member = await prisma.member.create({
+      data: {
+        id: `mem_${crypto.randomUUID().replace(/-/g, "")}`,
+        userId: user.id,
+        organizationId: invitation.organizationId,
+        role: invitation.role,
+      },
+    });
 
     return NextResponse.json({
       member: {
-        id: member[0].id,
-        role: member[0].role,
-        organizationId: member[0].organizationId,
+        id: member.id,
+        role: member.role,
+        organizationId: member.organizationId,
       },
       invitation: {
-        id: member[1].id,
-        status: member[1].status,
+        id: invitation.id,
+        status: invitation.status,
       },
     });
   } catch (error) {

@@ -301,10 +301,10 @@ describe("POST /api/classes/invite/[invitationId]", () => {
 
     const res = await endpoint();
     expect(res.status).toBe(409);
-    expect(prisma.$transaction).not.toHaveBeenCalled();
+    expect(prisma.member.create).not.toHaveBeenCalled();
   });
 
-  it("adds the member with the invite role and marks the invite accepted", async () => {
+  it("adds the member with the invite role and keeps the invite pending for others", async () => {
     vi.mocked(prisma.invitation.findUnique).mockResolvedValue({
       ...baseInvite,
       role: "admin",
@@ -315,17 +315,53 @@ describe("POST /api/classes/invite/[invitationId]", () => {
       name: "Chem 101",
       slug: "CHEM1",
     } as never);
-    vi.mocked(prisma.$transaction).mockResolvedValue([
-      { id: "mem_new", organizationId: "c1", role: "admin" },
-      { id: "inv_abc123", status: "accepted" },
-    ] as never);
+    vi.mocked(prisma.member.create).mockResolvedValue({
+      id: "mem_new",
+      organizationId: "c1",
+      role: "admin",
+    } as never);
 
     const res = await endpoint();
     expect(res.status).toBe(200);
     const body = await res.json();
     expect(body.member.role).toBe("admin");
-    expect(body.invitation.status).toBe("accepted");
-    expect(prisma.$transaction).toHaveBeenCalled();
+    expect(body.invitation.status).toBe("pending");
+    expect(prisma.member.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: {
+          id: expect.stringMatching(/^mem_[0-9a-f]{32}$/),
+          userId: "u1",
+          organizationId: "c1",
+          role: "admin",
+        },
+      }),
+    );
+    expect(prisma.invitation.update).not.toHaveBeenCalled();
+  });
+
+  it("remains usable by multiple users until it is cancelled or expires", async () => {
+    vi.mocked(prisma.invitation.findUnique).mockResolvedValue(
+      baseInvite as never,
+    );
+    vi.mocked(prisma.member.findFirst).mockResolvedValue(null);
+    vi.mocked(prisma.organization.findUnique).mockResolvedValue({
+      id: "c1",
+      name: "Chem 101",
+      slug: "CHEM1",
+    } as never);
+    vi.mocked(prisma.member.create).mockResolvedValue({
+      id: "mem_new",
+      organizationId: "c1",
+      role: "member",
+    } as never);
+
+    const res1 = await endpoint();
+    const res2 = await endpoint();
+    expect(res1.status).toBe(200);
+    expect(res2.status).toBe(200);
+    expect(prisma.member.create).toHaveBeenCalledTimes(2);
+    expect(prisma.invitation.update).not.toHaveBeenCalled();
+    expect(prisma.invitation.findUnique).toHaveBeenCalledTimes(2);
   });
 });
 

@@ -101,7 +101,7 @@ export default function InvitePage() {
         </p>
         <p className="mt-1 text-sm text-ink-muted">
           {error ||
-            "This invite link may have expired, been cancelled, or already been used."}
+            "This invite link may have expired or been cancelled."}
         </p>
         <Link
           href="/"
