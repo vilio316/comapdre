@@ -4,7 +4,6 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { authClient } from "@/lib/auth-client";
-import { redirect } from "next/navigation";
 import { FaGoogle, FaApple } from "react-icons/fa6";
 
 export default function SignInPage() {
@@ -12,10 +11,16 @@ export default function SignInPage() {
   const [password, setPassword] = useState("");
   const router = useRouter();
 
+  const next =
+    typeof window !== "undefined"
+      ? new URLSearchParams(window.location.search).get("callbackURL") ||
+        "/dashboard"
+      : "/dashboard";
+
   const social = async (provider: string) => {
     await authClient.signIn.social({
       provider: provider,
-      callbackURL: `${process.env.NEXT_PUBLIC_APP_BASE_URL}/dashboard`,
+      callbackURL: next,
     });
   };
 
@@ -27,7 +32,7 @@ export default function SignInPage() {
         password,
       },
       {
-        onSuccess: () => router.push("/dashboard"),
+        onSuccess: () => router.push(next),
       },
     );
   };

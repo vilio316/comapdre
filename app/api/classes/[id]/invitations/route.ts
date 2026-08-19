@@ -1,7 +1,10 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
-import { auth } from "@/lib/auth";
 import { getSessionUser } from "@/app/lib/require-auth";
+import { inviteLinkExpiresAt, inviteUrlFor } from "@/app/lib/invite-links";
+
+const INVITE_ROLES = new Set(["owner", "admin", "class_rep"]);
+const VALID_ROLES = new Set(["member", "admin", "class_rep"]);
 
 export async function POST(
   request: Request,
@@ -24,52 +27,54 @@ export async function POST(
         { status: 403 },
       );
     }
+    if (!INVITE_ROLES.has(membership.role)) {
+      return NextResponse.json(
+        { error: "You don't have permission to invite members" },
+        { status: 403 },
+      );
+    }
 
-    let body: { email?: unknown; role?: unknown };
+    let body: { role?: unknown };
     try {
       body = await request.json();
     } catch {
       return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
     }
 
-    const email = typeof body.email === "string" ? body.email.trim().toLowerCase() : "";
-    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      return NextResponse.json({ error: "A valid email is required" }, { status: 400 });
-    }
-
     const role: "member" | "admin" | "class_rep" =
-      typeof body.role === "string" &&
-      ["member", "admin", "class_rep"].includes(body.role)
+      typeof body.role === "string" && VALID_ROLES.has(body.role)
         ? (body.role as "member" | "admin" | "class_rep")
         : "member";
 
-    try {
-      const invitation = await auth.api.createInvitation({
-        body: { email, role, organizationId: id },
-        headers: request.headers,
-      });
+    const expiresAt = inviteLinkExpiresAt();
 
-      return NextResponse.json(
-        {
-          invitation: {
-            id: invitation.id,
-            email: invitation.email,
-            role: invitation.role,
-            status: invitation.status,
-            expiresAt: invitation.expiresAt.toISOString(),
-            createdAt: new Date(invitation.createdAt).toISOString(),
-          },
+    const invitation = await prisma.invitation.create({
+      data: {
+        id: `inv_${crypto.randomUUID().replace(/-/g, "")}`,
+        organizationId: id,
+        email: "",
+        role,
+        status: "pending",
+        expiresAt,
+        inviterId: user.id,
+      },
+    });
+
+    const origin = new URL(request.url).origin;
+
+    return NextResponse.json(
+      {
+        invitation: {
+          id: invitation.id,
+          role: invitation.role,
+          status: invitation.status,
+          expiresAt: invitation.expiresAt.toISOString(),
+          createdAt: invitation.createdAt.toISOString(),
+          inviteUrl: inviteUrlFor(origin, invitation.id),
         },
-        { status: 201 },
-      );
-    } catch (err) {
-      const error = err as { status?: number; body?: { message?: string; code?: string } };
-      const message =
-        error?.body?.message ??
-        (err instanceof Error ? err.message : "Failed to create invitation");
-      const status = error?.status ?? 400;
-      return NextResponse.json({ error: message }, { status });
-    }
+      },
+      { status: 201 },
+    );
   } catch (error) {
     console.error("Failed to create invitation:", error);
     return NextResponse.json(
@@ -106,14 +111,16 @@ export async function GET(
       orderBy: { createdAt: "desc" },
     });
 
+    const origin = new URL(request.url).origin;
+
     return NextResponse.json({
       invitations: invitations.map((inv) => ({
         id: inv.id,
-        email: inv.email,
         role: inv.role,
         status: inv.status,
         expiresAt: inv.expiresAt.toISOString(),
         createdAt: inv.createdAt.toISOString(),
+        inviteUrl: inviteUrlFor(origin, inv.id),
       })),
     });
   } catch (error) {

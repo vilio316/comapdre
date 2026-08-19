@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { auth } from "@/lib/auth";
+import prisma from "@/lib/prisma";
+import { getSessionUser } from "@/app/lib/require-auth";
 
 export async function GET(
   request: Request,
@@ -8,32 +9,43 @@ export async function GET(
   try {
     const { invitationId } = await params;
 
-    const invitation = await auth.api.getInvitation({
-      query: { id: invitationId },
-      headers: request.headers,
+    const invitation = await prisma.invitation.findUnique({
+      where: { id: invitationId },
+      include: {
+        organization: { select: { id: true, name: true, slug: true } },
+        inviter: { select: { name: true, email: true } },
+      },
     });
+
+    if (
+      !invitation ||
+      invitation.status !== "pending" ||
+      invitation.expiresAt.getTime() <= Date.now()
+    ) {
+      return NextResponse.json(
+        { error: "This invite link is no longer available. It may have expired or been used already." },
+        { status: 404 },
+      );
+    }
 
     return NextResponse.json({
       invitation: {
         id: invitation.id,
-        email: invitation.email,
         role: invitation.role,
-        status: invitation.status,
         expiresAt: invitation.expiresAt.toISOString(),
-        createdAt: new Date(invitation.createdAt).toISOString(),
-        organizationId: invitation.organizationId,
-        organizationName: invitation.organizationName,
-        organizationSlug: invitation.organizationSlug,
-        inviterEmail: invitation.inviterEmail,
+        createdAt: invitation.createdAt.toISOString(),
+        organizationId: invitation.organization.id,
+        organizationName: invitation.organization.name,
+        organizationSlug: invitation.organization.slug,
+        inviterName: invitation.inviter.name,
       },
     });
   } catch (error) {
-    const err = error as { status?: number; body?: { message?: string; code?: string } };
-    const message =
-      err?.body?.message ??
-      (error instanceof Error ? error.message : "Failed to load invitation");
-    const status = err?.status ?? 500;
-    return NextResponse.json({ error: message }, { status });
+    console.error("Failed to load invite link:", error);
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : "Failed to load invite link" },
+      { status: 500 },
+    );
   }
 }
 
@@ -42,46 +54,78 @@ export async function POST(
   { params }: { params: Promise<{ invitationId: string }> },
 ) {
   try {
+    const user = await getSessionUser(request.headers);
+    if (!user) {
+      return NextResponse.json(
+        { error: "You must be signed in to join this class" },
+        { status: 401 },
+      );
+    }
+
     const { invitationId } = await params;
 
-    const result = await auth.api.acceptInvitation({
-      body: { invitationId },
-      headers: request.headers,
+    const invitation = await prisma.invitation.findUnique({
+      where: { id: invitationId },
     });
+    if (
+      !invitation ||
+      invitation.status !== "pending" ||
+      invitation.expiresAt.getTime() <= Date.now()
+    ) {
+      return NextResponse.json(
+        { error: "This invite link has expired or is no longer available" },
+        { status: 404 },
+      );
+    }
+
+    const existing = await prisma.member.findFirst({
+      where: { organizationId: invitation.organizationId, userId: user.id },
+    });
+    if (existing) {
+      return NextResponse.json(
+        { error: "You are already a member of this class" },
+        { status: 409 },
+      );
+    }
+
+    const organization = await prisma.organization.findUnique({
+      where: { id: invitation.organizationId },
+    });
+    if (!organization) {
+      return NextResponse.json({ error: "Class not found" }, { status: 404 });
+    }
+
+    const member = await prisma.$transaction([
+      prisma.member.create({
+        data: {
+          id: `mem_${crypto.randomUUID().replace(/-/g, "")}`,
+          userId: user.id,
+          organizationId: invitation.organizationId,
+          role: invitation.role,
+        },
+      }),
+      prisma.invitation.update({
+        where: { id: invitationId },
+        data: { status: "accepted" },
+      }),
+    ]);
 
     return NextResponse.json({
-      member: result.member,
-      invitation: result.invitation,
+      member: {
+        id: member[0].id,
+        role: member[0].role,
+        organizationId: member[0].organizationId,
+      },
+      invitation: {
+        id: member[1].id,
+        status: member[1].status,
+      },
     });
   } catch (error) {
-    const err = error as { status?: number; body?: { message?: string } };
-    const message =
-      err?.body?.message ??
-      (error instanceof Error ? error.message : "Failed to accept invitation");
-    const status = err?.status ?? 500;
-    return NextResponse.json({ error: message }, { status });
-  }
-}
-
-export async function DELETE(
-  request: Request,
-  { params }: { params: Promise<{ invitationId: string }> },
-) {
-  try {
-    const { invitationId } = await params;
-
-    await auth.api.rejectInvitation({
-      body: { invitationId },
-      headers: request.headers,
-    });
-
-    return NextResponse.json({ ok: true });
-  } catch (error) {
-    const err = error as { status?: number; body?: { message?: string } };
-    const message =
-      err?.body?.message ??
-      (error instanceof Error ? error.message : "Failed to reject invitation");
-    const status = err?.status ?? 500;
-    return NextResponse.json({ error: message }, { status });
+    console.error("Failed to accept invitation:", error);
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : "Failed to accept invitation" },
+      { status: 500 },
+    );
   }
 }

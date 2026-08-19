@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { getSessionUser } from "@/app/lib/require-auth";
+import { inviteUrlFor } from "@/app/lib/invite-links";
 
 const INVITE_ROLES = new Set(["owner", "admin", "class_rep"]);
 
@@ -50,6 +51,8 @@ export async function GET(
         })
       : [];
 
+    const origin = new URL(request.url).origin;
+
     return NextResponse.json({
       class: {
         id: organization.id,
@@ -71,11 +74,11 @@ export async function GET(
       })),
       invitations: invitations.map((inv) => ({
         id: inv.id,
-        email: inv.email,
         role: inv.role,
         status: inv.status,
         expiresAt: inv.expiresAt.toISOString(),
         createdAt: inv.createdAt.toISOString(),
+        inviteUrl: inviteUrlFor(origin, inv.id),
       })),
     });
   } catch (error) {

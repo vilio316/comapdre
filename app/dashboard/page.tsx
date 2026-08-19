@@ -135,12 +135,12 @@ export default function DashboardPage() {
             <h2 className="text-base font-bold text-deep">Your Classes</h2>
             <Link
               href="/dashboard/classes"
-              className="text-xs font-medium text-ink-muted transition-colors hover:text-deep"
+              className="text-xs p-2 font-medium text-ink-muted transition-colors hover:text-deep bg-gold rounded-2xl"
             >
               Manage classes
             </Link>
           </div>
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-4">
             {classes.map((cls) => (
               <ClassDashCard cls={cls} key={cls.id} />
             ))}

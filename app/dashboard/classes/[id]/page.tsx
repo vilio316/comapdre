@@ -40,11 +40,11 @@ interface ClassDoc {
 
 interface Invitation {
   id: string;
-  email: string;
   role: string;
   status: string;
   expiresAt: string;
   createdAt: string;
+  inviteUrl: string;
 }
 
 interface ClassDetail {
@@ -110,11 +110,11 @@ export default function ClassDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  const [inviteEmail, setInviteEmail] = useState("");
   const [inviteRole, setInviteRole] = useState("member");
   const [inviting, setInviting] = useState(false);
   const [inviteError, setInviteError] = useState("");
   const [inviteSuccess, setInviteSuccess] = useState("");
+  const [newInvite, setNewInvite] = useState<Invitation | null>(null);
 
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [cancellingId, setCancellingId] = useState<string | null>(null);
@@ -185,10 +185,7 @@ export default function ClassDetailPage() {
     e.preventDefault();
     setInviteError("");
     setInviteSuccess("");
-    if (!inviteEmail.trim()) {
-      setInviteError("Email is required");
-      return;
-    }
+    setNewInvite(null);
     setInviting(true);
     try {
       const res = await fetch(
@@ -196,19 +193,19 @@ export default function ClassDetailPage() {
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email: inviteEmail, role: inviteRole }),
+          body: JSON.stringify({ role: inviteRole }),
         },
       );
       const body = await res.json().catch(() => null);
       if (!res.ok) {
-        setInviteError(body?.error ?? "Failed to send invitation");
+        setInviteError(body?.error ?? "Failed to create invite link");
         return;
       }
-      setInviteSuccess("Invitation sent");
-      setInviteEmail("");
+      setInviteSuccess("Invite link created");
+      if (body?.invitation) setNewInvite(body.invitation);
       await load();
     } catch {
-      setInviteError("Failed to send invitation");
+      setInviteError("Failed to create invite link");
     } finally {
       setInviting(false);
     }
@@ -228,6 +225,7 @@ export default function ClassDetailPage() {
         setInviteError(body?.error ?? "Failed to cancel invitation");
         return;
       }
+      setNewInvite((prev) => (prev && prev.id === invitationId ? null : prev));
       await load();
     } catch {
       setInviteError("Failed to cancel invitation");
@@ -236,11 +234,12 @@ export default function ClassDetailPage() {
     }
   };
 
-  const copyLink = async (invitationId: string) => {
-    const link = `${window.location.origin}/dashboard/classes/invite/${invitationId}`;
+  const copyLink = async (invitation: Invitation) => {
+    const link =
+      invitation.inviteUrl || `${window.location.origin}/invite/${invitation.id}`;
     try {
       await navigator.clipboard.writeText(link);
-      setCopiedId(invitationId);
+      setCopiedId(invitation.id);
       setTimeout(() => setCopiedId(null), 2000);
     } catch {
       setInviteError("Could not copy link");
@@ -454,20 +453,15 @@ export default function ClassDetailPage() {
 
       {canInvite && (
         <div className="mb-6 rounded-xl border border-gray-200 bg-surface p-5 shadow-sm">
-          <h2 className="mb-3 text-sm font-semibold text-deep">
-            Invite a member
-          </h2>
+          <h2 className="text-sm font-semibold text-deep">Invite members</h2>
+          <p className="mt-1 text-xs text-ink-muted">
+            Create a short-lived invite link. Anyone with the link can join this
+            class as the chosen role before it expires.
+          </p>
           <form
             onSubmit={handleInvite}
-            className="flex flex-col gap-3 sm:flex-row"
+            className="mt-3 flex flex-col gap-3 sm:flex-row"
           >
-            <input
-              type="email"
-              value={inviteEmail}
-              onChange={(e) => setInviteEmail(e.target.value)}
-              placeholder="Email address"
-              className="flex-1 rounded-lg border border-gray-300 bg-surface px-4 py-2 text-sm text-ink outline-none focus:border-blue focus:ring-2 focus:ring-blue/20"
-            />
             <select
               value={inviteRole}
               onChange={(e) => setInviteRole(e.target.value)}
@@ -482,14 +476,51 @@ export default function ClassDetailPage() {
               disabled={inviting}
               className="rounded-lg bg-gold px-4 py-2 text-xs font-medium text-deep transition-colors hover:bg-gold-light disabled:opacity-60"
             >
-              {inviting ? "Sending..." : "Invite"}
+              {inviting ? "Creating..." : "Create invite link"}
             </button>
           </form>
+
+          {newInvite && (
+            <div className="mt-4 rounded-lg border border-gold/30 bg-gold/5 p-4">
+              <p className="text-[11px] font-medium uppercase tracking-wide text-ink-muted">
+                Share this link
+              </p>
+              <div className="mt-2 flex flex-col gap-2 sm:flex-row">
+                <input
+                  readOnly
+                  value={newInvite.inviteUrl}
+                  onFocus={(e) => e.currentTarget.select()}
+                  className="flex-1 rounded-lg border border-gray-300 bg-surface px-3 py-2 text-xs text-ink outline-none focus:border-blue"
+                />
+                <button
+                  onClick={() => copyLink(newInvite)}
+                  className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-gray-200 px-3 py-2 text-xs font-medium text-ink-muted transition-colors hover:bg-gray-50"
+                >
+                  {copiedId === newInvite.id ? (
+                    <>
+                      <FaCheck /> Copied
+                    </>
+                  ) : (
+                    <>
+                      <FaLink /> Copy link
+                    </>
+                  )}
+                </button>
+              </div>
+              <p className="mt-2 text-[11px] text-ink-muted">
+                Expires{" "}
+                <span className="font-medium text-deep">
+                  {new Date(newInvite.expiresAt).toLocaleDateString()}
+                </span>{" "}
+                &middot; can be used once
+              </p>
+            </div>
+          )}
 
           {invitations.length > 0 && (
             <div className="mt-5">
               <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-ink-muted">
-                Pending invitations
+                Pending invite links
               </h3>
               <div className="space-y-2">
                 {invitations.map((inv) => (
@@ -499,16 +530,18 @@ export default function ClassDetailPage() {
                   >
                     <div className="min-w-0">
                       <p className="truncate text-sm font-medium text-deep">
-                        {inv.email}
+                        {roleLabel(inv.role)}
                       </p>
                       <p className="text-[11px] text-ink-muted">
-                        {roleLabel(inv.role)} &middot; expires{" "}
+                        Created{" "}
+                        {new Date(inv.createdAt).toLocaleDateString()} &middot;
+                        expires{" "}
                         {new Date(inv.expiresAt).toLocaleDateString()}
                       </p>
                     </div>
                     <div className="flex shrink-0 items-center gap-2">
                       <button
-                        onClick={() => copyLink(inv.id)}
+                        onClick={() => copyLink(inv)}
                         className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-medium text-ink-muted transition-colors hover:bg-gray-50"
                       >
                         {copiedId === inv.id ? (
@@ -517,7 +550,7 @@ export default function ClassDetailPage() {
                           </>
                         ) : (
                           <>
-                            <FaLink /> Copy invite link
+                            <FaLink /> Copy link
                           </>
                         )}
                       </button>

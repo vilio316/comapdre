@@ -17,6 +17,7 @@ export function proxy(request: NextRequest) {
     if (pathname === "/api/documents") return NextResponse.next();
     if (pathname.startsWith("/api/documents/")) return NextResponse.next();
     if (pathname === "/api/avatar") return NextResponse.next();
+    if (pathname.startsWith("/api/classes/invite/")) return NextResponse.next();
   }
 
   const sessionCookie = getSessionCookie(request);
