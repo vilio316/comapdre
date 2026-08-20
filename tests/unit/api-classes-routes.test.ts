@@ -244,12 +244,16 @@ describe("POST /api/classes", () => {
 describe("GET /api/classes/search", () => {
   it("returns 401 when unauthenticated", async () => {
     vi.mocked(getSessionUser).mockResolvedValue(null);
-    const res = await searchGet(new Request("http://localhost/api/classes/search?q=math"));
+    const res = await searchGet(
+      new Request("http://localhost/api/classes/search?q=math"),
+    );
     expect(res.status).toBe(401);
   });
 
   it("returns empty when query is blank", async () => {
-    const res = await searchGet(new Request("http://localhost/api/classes/search?q="));
+    const res = await searchGet(
+      new Request("http://localhost/api/classes/search?q="),
+    );
     expect(res.status).toBe(200);
     expect(await res.json()).toEqual({ classes: [] });
   });
@@ -262,9 +266,7 @@ describe("GET /api/classes/search", () => {
   });
 
   it("searches by name or code excluding the user's own organizations", async () => {
-    vi.mocked(prisma.member.findMany).mockResolvedValue([
-      { userId: "u1", organizationId: "mine" },
-    ] as never);
+    vi.mocked(prisma.member.findMany).mockResolvedValue([] as never);
     vi.mocked(prisma.organization.findMany).mockResolvedValue([
       {
         id: "c1",
@@ -278,7 +280,9 @@ describe("GET /api/classes/search", () => {
       },
     ] as never);
 
-    const res = await searchGet(new Request("http://localhost/api/classes/search?q=math"));
+    const res = await searchGet(
+      new Request("http://localhost/api/classes/search?q=math"),
+    );
     expect(res.status).toBe(200);
     const body = await res.json();
     expect(body.classes).toEqual([
@@ -294,10 +298,7 @@ describe("GET /api/classes/search", () => {
     expect(prisma.organization.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
         where: {
-          AND: [
-            { OR: expect.any(Array) },
-            { id: { notIn: ["mine"] } },
-          ],
+          AND: [{ OR: expect.any(Array) }, { id: { notIn: ["mine"] } }],
         },
         take: 20,
       }),
@@ -308,7 +309,9 @@ describe("GET /api/classes/search", () => {
     vi.mocked(prisma.member.findMany).mockResolvedValue([] as never);
     vi.mocked(prisma.organization.findMany).mockResolvedValue([] as never);
 
-    const res = await searchGet(new Request("http://localhost/api/classes/search?q=math"));
+    const res = await searchGet(
+      new Request("http://localhost/api/classes/search?q=math"),
+    );
     expect(res.status).toBe(200);
     expect(prisma.organization.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -319,7 +322,9 @@ describe("GET /api/classes/search", () => {
 
   it("returns 500 on failure", async () => {
     vi.mocked(prisma.member.findMany).mockRejectedValue(new Error("db down"));
-    const res = await searchGet(new Request("http://localhost/api/classes/search?q=math"));
+    const res = await searchGet(
+      new Request("http://localhost/api/classes/search?q=math"),
+    );
     expect(res.status).toBe(500);
   });
 });
@@ -327,17 +332,23 @@ describe("GET /api/classes/search", () => {
 describe("POST /api/classes/[id]/join", () => {
   it("returns 401 when unauthenticated", async () => {
     vi.mocked(getSessionUser).mockResolvedValue(null);
-    const res = await joinPost(new Request("http://localhost/api/classes/c1/join"), {
-      params: Promise.resolve({ id: "c1" }),
-    });
+    const res = await joinPost(
+      new Request("http://localhost/api/classes/c1/join"),
+      {
+        params: Promise.resolve({ id: "c1" }),
+      },
+    );
     expect(res.status).toBe(401);
   });
 
   it("returns 404 when the organization does not exist", async () => {
     vi.mocked(prisma.organization.findUnique).mockResolvedValue(null);
-    const res = await joinPost(new Request("http://localhost/api/classes/nope/join"), {
-      params: Promise.resolve({ id: "nope" }),
-    });
+    const res = await joinPost(
+      new Request("http://localhost/api/classes/nope/join"),
+      {
+        params: Promise.resolve({ id: "nope" }),
+      },
+    );
     expect(res.status).toBe(404);
   });
 
@@ -349,9 +360,12 @@ describe("POST /api/classes/[id]/join", () => {
       description: null,
       members: [{ userId: "u1" }],
     } as never);
-    const res = await joinPost(new Request("http://localhost/api/classes/c1/join"), {
-      params: Promise.resolve({ id: "c1" }),
-    });
+    const res = await joinPost(
+      new Request("http://localhost/api/classes/c1/join"),
+      {
+        params: Promise.resolve({ id: "c1" }),
+      },
+    );
     expect(res.status).toBe(409);
     expect(prisma.member.create).not.toHaveBeenCalled();
   });
@@ -366,12 +380,21 @@ describe("POST /api/classes/[id]/join", () => {
     } as never);
     vi.mocked(prisma.member.create).mockResolvedValue({} as never);
 
-    const res = await joinPost(new Request("http://localhost/api/classes/c1/join"), {
-      params: Promise.resolve({ id: "c1" }),
-    });
+    const res = await joinPost(
+      new Request("http://localhost/api/classes/c1/join"),
+      {
+        params: Promise.resolve({ id: "c1" }),
+      },
+    );
     expect(res.status).toBe(200);
     expect(await res.json()).toEqual({
-      class: { id: "c1", name: "Math", code: "MATH1", description: "Numbers", role: "member" },
+      class: {
+        id: "c1",
+        name: "Math",
+        code: "MATH1",
+        description: "Numbers",
+        role: "member",
+      },
     });
     expect(prisma.member.create).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -386,10 +409,15 @@ describe("POST /api/classes/[id]/join", () => {
   });
 
   it("returns 500 on failure", async () => {
-    vi.mocked(prisma.organization.findUnique).mockRejectedValue(new Error("db down"));
-    const res = await joinPost(new Request("http://localhost/api/classes/c1/join"), {
-      params: Promise.resolve({ id: "c1" }),
-    });
+    vi.mocked(prisma.organization.findUnique).mockRejectedValue(
+      new Error("db down"),
+    );
+    const res = await joinPost(
+      new Request("http://localhost/api/classes/c1/join"),
+      {
+        params: Promise.resolve({ id: "c1" }),
+      },
+    );
     expect(res.status).toBe(500);
   });
 });

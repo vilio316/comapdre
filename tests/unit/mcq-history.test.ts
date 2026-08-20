@@ -1,7 +1,9 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { createMemRedis, type MemRedis } from "@/tests/helpers/mem-redis";
 
-const { memHolder } = vi.hoisted(() => ({ memHolder: { mem: null as MemRedis | null } }));
+const { memHolder } = vi.hoisted(() => ({
+  memHolder: { mem: null as MemRedis | null },
+}));
 
 vi.mock("ioredis", () => ({
   default: function RedisMock() {
@@ -10,10 +12,7 @@ vi.mock("ioredis", () => ({
   },
 }));
 
-import {
-  recordMcqHistory,
-  listMcqHistory,
-} from "@/app/lib/mcq-history";
+import { recordMcqHistory, listMcqHistory } from "@/app/lib/mcq-history";
 import { setMcqResult } from "@/app/lib/mcq-cache";
 
 const mem = () => memHolder.mem;
@@ -47,7 +46,7 @@ describe("listMcqHistory", () => {
       createdAt: 2000,
     });
 
-    const history = await listMcqHistory();
+    const history = await listMcqHistory(100, "orgId");
     expect(history).toHaveLength(1);
     expect(history[0].resultKey).toBe("mcq:v1:5:abc");
     expect(history[0].keys).toEqual(["doc1.pdf"]);
@@ -81,17 +80,31 @@ describe("listMcqHistory", () => {
   it("returns entries newest-first", async () => {
     await setMcqResult(
       "mcq:v1:5:older",
-      JSON.stringify({ questions: [{ q: "q", options: ["a", "b", "c", "d"], answer: 0 }] }),
+      JSON.stringify({
+        questions: [{ q: "q", options: ["a", "b", "c", "d"], answer: 0 }],
+      }),
     );
     await setMcqResult(
       "mcq:v1:5:newer",
-      JSON.stringify({ questions: [{ q: "q", options: ["a", "b", "c", "d"], answer: 0 }] }),
+      JSON.stringify({
+        questions: [{ q: "q", options: ["a", "b", "c", "d"], answer: 0 }],
+      }),
     );
-    await recordMcqHistory({ resultKey: "mcq:v1:5:older", keys: [], createdAt: 1000 });
-    await recordMcqHistory({ resultKey: "mcq:v1:5:newer", keys: [], createdAt: 2000 });
+    await recordMcqHistory({
+      resultKey: "mcq:v1:5:older",
+      keys: [],
+      createdAt: 1000,
+    });
+    await recordMcqHistory({
+      resultKey: "mcq:v1:5:newer",
+      keys: [],
+      createdAt: 2000,
+    });
 
     const history = await listMcqHistory();
-    expect(history.map((h) => h.resultKey)).toEqual(["mcq:v1:5:newer", "mcq:v1:5:older"]);
+    expect(history.map((h) => h.resultKey)).toEqual([
+      "mcq:v1:5:newer",
+      "mcq:v1:5:older",
+    ]);
   });
 });
-
