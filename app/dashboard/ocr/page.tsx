@@ -165,7 +165,7 @@ export default function OCRPage() {
             <div className="mt-4">
               <button
                 onClick={reset}
-                className="rounded-lg border border-gray-200 px-4 py-2.5 text-sm text-ink-muted hover:bg-gray-50"
+                className="rounded-lg border border-gray-200 px-4 py-2.5 text-sm text-ink-muted hover:bg-gold transition-colors"
               >
                 New Scan
               </button>
