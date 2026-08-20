@@ -3,6 +3,7 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import Link from "next/link";
 import SelectedFileList from "@/app/components/selected-file-list";
+import ClassSelector from "@/app/components/class-selector";
 import McqTabs from "@/app/components/mcq-tabs";
 import { Skeleton } from "@/app/components/skeleton";
 import { useMcq } from "@/app/context/mcq-context";
@@ -38,7 +39,8 @@ export default function MCQPage() {
   const done = !!resultKey || job?.status === "done";
   const doneKey = resultKey ?? job?.resultKey ?? null;
 
-  useEffect(() => {
+  const loadDocs = useCallback(() => {
+    setLoadingDocs(true);
     fetch("/api/documents")
       .then((r) => {
         if (!r.ok) throw new Error(`Request failed (${r.status})`);
@@ -58,6 +60,22 @@ export default function MCQPage() {
       .catch(console.error)
       .finally(() => setLoadingDocs(false));
   }, []);
+
+  useEffect(() => {
+    loadDocs();
+  }, [loadDocs]);
+
+  const handleActiveChange = useCallback(
+    (_cls: { id: string; role: string } | null) => {
+      setSelectedKeys([]);
+      setFiles([]);
+      setError(null);
+      setJobId(null);
+      setResultKey(null);
+      loadDocs();
+    },
+    [loadDocs],
+  );
 
   const addKey = useCallback(() => {
     if (pickKey && !selectedKeys.includes(pickKey)) {
@@ -117,12 +135,20 @@ export default function MCQPage() {
 
   return (
     <div className="mx-auto px-3 py-6 sm:py-8 sm:px-4">
-      <h1 className="text-2xl font-bold text-deep sm:text-3xl">
-        MCQ Generator
-      </h1>
-      <p className="mt-1 text-sm text-ink-muted sm:mt-2 sm:text-base">
-        Upload documents to generate practice multiple-choice questions.
-      </p>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-bold text-deep sm:text-3xl">
+            MCQ Generator
+          </h1>
+          <p className="mt-1 text-sm text-ink-muted sm:mt-2 sm:text-base">
+            Upload documents to generate practice multiple-choice questions.
+          </p>
+        </div>
+        <ClassSelector
+          className="min-w-48"
+          onActiveChange={handleActiveChange}
+        />
+      </div>
 
       <McqTabs />
 
