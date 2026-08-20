@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { authClient } from "@/lib/auth-client";
+import { Skeleton, SkeletonCircle } from "@/app/components/skeleton";
 import { FaCode, FaEnvelope, FaCheck, FaRightToBracket } from "react-icons/fa6";
 
 interface InvitationData {
@@ -87,8 +88,20 @@ export default function InvitePage() {
 
   if (loading) {
     return (
-      <div className="flex flex-1 items-center justify-center py-20">
-        <div className="h-8 w-8 animate-spin rounded-full border-2 border-gray-300 border-t-deep" />
+      <div className="mx-auto max-w-lg py-8">
+        <div className="rounded-xl border border-gray-200 bg-surface p-6 text-center shadow-sm">
+          <SkeletonCircle className="mx-auto mb-4 h-12 w-12" />
+          <Skeleton className="mx-auto h-5 w-48" />
+          <Skeleton className="mx-auto mt-2 h-6 w-36" />
+          <div className="mx-auto mt-3 flex items-center justify-center gap-3">
+            <Skeleton className="h-3 w-16" />
+            <Skeleton className="h-3 w-20" />
+          </div>
+          <Skeleton className="mx-auto mt-3 h-3 w-64" />
+          <div className="mt-6">
+            <Skeleton className="h-10 w-full rounded-lg" />
+          </div>
+        </div>
       </div>
     );
   }

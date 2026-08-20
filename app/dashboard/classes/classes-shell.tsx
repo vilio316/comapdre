@@ -9,6 +9,7 @@ import {
   FaPlus,
 } from "react-icons/fa6";
 import ClassDashCard from "@/app/components/class-dashboard-card";
+import { Skeleton } from "@/app/components/skeleton";
 import type { MyClass } from "@/app/lib/class-types";
 
 interface SearchResult {
@@ -238,8 +239,19 @@ export default function ClassesShell({
         {search.trim() !== "" && (
           <div className="mt-3">
             {searching ? (
-              <div className="py-6 text-center text-sm text-ink-muted">
-                Searching...
+              <div className="space-y-2">
+                {Array.from({ length: 3 }).map((_, i) => (
+                  <div
+                    key={i}
+                    className="flex items-center justify-between gap-3 rounded-lg border border-gray-200 bg-surface p-3 sm:p-3.5"
+                  >
+                    <div className="min-w-0 flex-1">
+                      <Skeleton className="h-3.5 w-2/3" />
+                      <Skeleton className="mt-2 h-3 w-1/2" />
+                    </div>
+                    <Skeleton className="h-8 w-16 shrink-0 rounded-lg" />
+                  </div>
+                ))}
               </div>
             ) : results.length === 0 ? (
               <div className="py-6 text-center text-sm text-ink-muted">

@@ -4,6 +4,7 @@ import { useState, useRef, useCallback, useEffect } from "react";
 import Link from "next/link";
 import { useNotifications } from "@/app/context/notification-context";
 import ClassSelector from "@/app/components/class-selector";
+import { Skeleton } from "@/app/components/skeleton";
 import { FaX } from "react-icons/fa6";
 import { FaFileUpload } from "react-icons/fa";
 
@@ -360,8 +361,9 @@ export default function CompilePage() {
             Select from your documents
           </p>
           {loadingDocs ? (
-            <div className="flex items-center justify-center rounded-lg border border-gray-200 bg-surface p-4">
-              <div className="h-4 w-4 animate-spin rounded-full border-2 border-gray-300 border-t-gold" />
+            <div className="flex items-center gap-2">
+              <Skeleton className="h-10 min-w-0 flex-1 rounded-lg" />
+              <Skeleton className="h-10 w-16 shrink-0 rounded-lg" />
             </div>
           ) : storedDocs.length === 0 ? (
             <p className="rounded-lg border border-gray-200 bg-surface p-4 text-center text-xs text-ink-muted">
