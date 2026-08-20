@@ -55,6 +55,8 @@ export async function POST(request: NextRequest) {
       .getAll("keys")
       .map((k) => String(k))
       .filter((k) => k.trim().length > 0);
+    const fileNames = files.map((f) => f.name);
+    const newKeys = [...keys, ...fileNames];
 
     const totalInputs = files.length + keys.length;
     if (totalInputs === 0) {
@@ -87,16 +89,16 @@ export async function POST(request: NextRequest) {
     const resultKey = buildMcqCacheKey(
       count,
       fileHashes,
-      keys,
+      newKeys,
       ctx.organizationId,
     );
 
     const cached = await getMcqResult(resultKey);
     if (cached) {
-      if (files.length === 0 && keys.length > 0) {
+      if (newKeys.length > 0) {
         await recordMcqHistory({
           resultKey,
-          keys,
+          keys: newKeys,
           createdAt: Date.now(),
         });
       }
@@ -122,11 +124,16 @@ export async function POST(request: NextRequest) {
         }),
       );
 
-      const { id } = await createLocalMcqJob(mcqFiles, count, resultKey, keys);
+      const { id } = await createLocalMcqJob(
+        mcqFiles,
+        count,
+        resultKey,
+        newKeys,
+      );
       return NextResponse.json({ jobId: id, resultKey });
     }
 
-    const { id } = await createOnlineMcqJob(keys, count, resultKey);
+    const { id } = await createOnlineMcqJob(newKeys, count, resultKey);
     return NextResponse.json({ jobId: id, resultKey });
   } catch (error) {
     console.error("MCQ submission failed:", error);

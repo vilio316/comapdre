@@ -182,7 +182,24 @@ describe("local jobs (uploaded files)", () => {
     expect(result.count).toBe(10);
   });
 
-  it("does not record history for local jobs", async () => {
+  it("records history for local jobs, including uploaded file names", async () => {
+    await processor()(
+      fakeJob({
+        type: "local",
+        files: [{ path: "/tmp/a.png", name: "a.png", mimeType: "image/png" }],
+        documentKeys: ["a.png"],
+        count: 10,
+        resultKey: "mcq:v1:10:local",
+      }),
+    );
+    expect(recordMcqHistory).toHaveBeenCalledWith({
+      resultKey: "mcq:v1:10:local",
+      keys: ["a.png"],
+      createdAt: expect.any(Number),
+    });
+  });
+
+  it("does not record history for local jobs without document keys", async () => {
     await processor()(
       fakeJob({
         type: "local",

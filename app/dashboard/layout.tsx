@@ -5,7 +5,6 @@ import { getSessionUserServer } from "@/app/lib/server-session";
 const nav = [
   { href: "/dashboard", label: "Overview" },
   { href: "/dashboard/mcq", label: "MCQ" },
-  { href: "/dashboard/exam-prep", label: "Exam Prep" },
   { href: "/dashboard/ocr", label: "OCR" },
   { href: "/dashboard/classes", label: "Classes" },
   { href: "/dashboard/documents", label: "Documents" },

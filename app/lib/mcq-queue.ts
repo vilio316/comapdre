@@ -133,8 +133,7 @@ export function startMcqWorker() {
       if (
         data.resultKey &&
         data.documentKeys &&
-        data.documentKeys.length > 0 &&
-        !(data.files && data.files.length > 0)
+        data.documentKeys.length > 0
       ) {
         await recordMcqHistory({
           resultKey: data.resultKey,

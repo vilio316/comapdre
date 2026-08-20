@@ -10,11 +10,6 @@ const offerings = [
     icon: <FaClipboard />,
   },
   {
-    title: "Exam Preparation",
-    desc: "Flashcards, guided summaries, and timed practice tests — all the tools you need to ace your exams in one place.",
-    icon: <FaBook />,
-  },
-  {
     title: "OCR Scanner",
     desc: "Extract text from handwritten notes, typed documents, and images. Works with any document you upload or photograph.",
     icon: <FaCamera />,

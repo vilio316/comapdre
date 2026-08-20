@@ -83,9 +83,7 @@ export default async function McqHistoryPage() {
           <ul className="space-y-3">
             {history.map((entry) => {
               const title =
-                entry.keys.length > 0
-                  ? fileName(entry.keys[0])
-                  : "MCQ set";
+                entry.keys.length > 0 ? fileName(entry.keys[0]) : "MCQ set";
               const extra =
                 entry.keys.length > 1 ? ` +${entry.keys.length - 1} more` : "";
               return (
@@ -99,7 +97,8 @@ export default async function McqHistoryPage() {
                         </span>
                       </p>
                       <p className="mt-0.5 text-xs text-ink-muted">
-                        {entry.count} questions &middot; {formatDate(entry.createdAt)}
+                        {entry.count} questions &middot;{" "}
+                        {formatDate(entry.createdAt)}
                       </p>
                     </div>
                     <Link

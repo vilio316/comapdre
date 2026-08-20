@@ -10,7 +10,11 @@ import {
   FaCamera,
   FaFileImport,
 } from "react-icons/fa6";
-import { getClassDetail, getClassDocuments, roleCanDelete } from "@/app/lib/classes";
+import {
+  getClassDetail,
+  getClassDocuments,
+  roleCanDelete,
+} from "@/app/lib/classes";
 import type { ClassMember } from "@/app/lib/class-types";
 import { getSessionUserServer, requestOrigin } from "@/app/lib/server-session";
 import { SetActiveClass } from "./set-active-class";
@@ -31,12 +35,7 @@ const classTools = [
     href: "/dashboard/mcq",
     icon: <FaClipboard />,
   },
-  {
-    title: "Exam Prep",
-    desc: "Flashcards & summaries",
-    href: "/dashboard/exam-prep",
-    icon: <FaBook />,
-  },
+
   {
     title: "OCR",
     desc: "Scan local documents for text",

@@ -13,11 +13,9 @@ import { IoClose, IoMenu } from "react-icons/io5";
 const navLinks = [
   { href: "/dashboard", label: "Dashboard" },
   { href: "/dashboard/mcq", label: "MCQ" },
-  { href: "/dashboard/exam-prep", label: "Exam Prep" },
   { href: "/dashboard/ocr", label: "OCR" },
   { href: "/dashboard/classes", label: "Classes" },
   { href: "/dashboard/compile", label: "Compile" },
-  { href: "/dashboard/documents", label: "Documents" },
 ];
 
 export default function Navbar() {
@@ -77,10 +75,7 @@ export default function Navbar() {
 
       {open && (
         <div className="fixed inset-0 z-40" aria-hidden="true">
-          <div
-            className="absolute inset-0 bg-black/50"
-            onClick={close}
-          />
+          <div className="absolute inset-0 bg-black/50" onClick={close} />
         </div>
       )}
 
